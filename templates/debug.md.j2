@@ -1,0 +1,25 @@
+# Debug View
+
+{% if stats %}
+## Cache Stats
+- input_documents: {{ stats.input_documents }}
+- output_cache_hit: {{ stats.output_cache_hit }}
+- document_cache_hits: {{ stats.document_cache_hits }}
+- document_cache_misses: {{ stats.document_cache_misses }}
+- summarizer_calls: {{ stats.summarizer_calls }}
+{% endif %}
+
+## Documents
+{% for item in summaries %}
+### {{ item.document_id }}
+- fingerprint: {{ item.content_fingerprint }}
+- title: {{ item.title }}
+- type: {{ item.doc_type }}
+- format: {{ item.content_format }}
+- summarizer_id: {{ item.summarizer_id }}
+- summary: {{ item.summary }}
+- key_points: {{ item.key_points | length }}
+- actions: {{ item.actions | length }}
+- risks: {{ item.risks | length }}
+- metrics: {{ item.metrics | length }}
+{% endfor %}

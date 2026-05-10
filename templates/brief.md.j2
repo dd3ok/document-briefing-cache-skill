@@ -1,0 +1,45 @@
+# 문서 브리핑
+
+대상: {{ audience }}  
+문서 수: {{ total_documents }}
+
+## 핵심 요약
+{% for item in summaries %}
+### {{ loop.index }}. {{ item.title or item.document_id }}
+- 유형: {{ item.doc_type }}{% if item.source %} / 출처: {{ item.source }}{% endif %}
+- 요약: {{ item.summary }}
+{% if item.key_points %}
+- 주요 포인트:
+{% for point in item.key_points[:4] %}
+  - {{ point.text }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+{% if all_decisions %}
+## 결정 사항
+{% for decision in all_decisions[:10] %}
+- {{ decision.text }}{% if decision.owner %} / 담당: {{ decision.owner }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if all_actions %}
+## 액션 아이템
+{% for action in all_actions[:10] %}
+- {{ action.action }}{% if action.owner %} / 담당: {{ action.owner }}{% endif %}{% if action.due %} / 기한: {{ action.due }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if all_risks %}
+## 리스크 / 이슈
+{% for risk in all_risks[:10] %}
+- [{{ risk.severity }}] {{ risk.title }}{% if risk.reason %} — {{ risk.reason }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if all_questions %}
+## 확인 필요
+{% for question in all_questions[:10] %}
+- {{ question }}
+{% endfor %}
+{% endif %}

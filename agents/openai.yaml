@@ -1,0 +1,19 @@
+name: document-briefing-cache
+version: 0.1.0
+entrypoint: SKILL.md
+summary: >
+  Generic document briefing skill that normalizes broad document inputs,
+  caches structured DocumentSummaryState per document fingerprint, and renders
+  repeated briefings without unnecessary LLM calls.
+triggers:
+  - summarize these documents
+  - brief this report
+  - recap these meeting notes
+  - summarize this JSON or XML
+  - create an executive digest
+  - convert this briefing to Slack format
+  - summarize again without reprocessing
+recommended_tools:
+  - python
+  - filesystem
+  - cache

@@ -1,0 +1,25 @@
+{
+  "documents": [
+    {
+      "id": "meeting-2026-05-07-growth",
+      "title": "Growth Weekly Meeting Notes",
+      "source": "notion://growth/weekly/2026-05-07",
+      "type": "meeting_notes",
+      "content": "# Growth Weekly Meeting\n\nAttendees: Product, Marketing, Data.\n\nDecision: Approved the new onboarding experiment for 20% of traffic.\n\nMetric: activation rate increased from 32% to 35%.\n\nAction: Data team should validate cohort split by 2026-05-10. Owner: Data team. Due: 2026-05-10.\n\nOpen question: Should enterprise accounts be excluded from the first rollout?"
+    },
+    {
+      "id": "incident-api-441",
+      "title": "Payment API Incident Log",
+      "source": "pagerduty://incident/441",
+      "type": "log",
+      "content": "2026-05-07 09:15 KST: Payment API error rate reached 2.4%. Incident severity P1. Risk: checkout conversion may drop while retries continue. Action: Backend team should inspect the latest deployment diff. Owner: Backend. Due: today. 2026-05-07 09:40 KST: rollback completed and error rate returned to 0.2%."
+    },
+    {
+      "id": "policy-expense-v3",
+      "title": "Expense Policy Update",
+      "source": "sharepoint://policies/expense-v3",
+      "type": "policy",
+      "content": "Policy update: International travel expenses above USD 1,000 require finance approval before booking. Receipts must be submitted within 14 days. Risk: late submissions can delay reimbursement. Action: Managers should notify teams before the next travel cycle."
+    }
+  ]
+}
