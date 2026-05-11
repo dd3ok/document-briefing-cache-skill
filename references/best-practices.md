@@ -50,6 +50,8 @@ Create a small evaluation set from actual documents and track:
 - LLM call count,
 - output usability.
 
+Static trigger evals should cover intended trigger and near-miss boundary cases. Treat them as metadata fixtures, not as proof of actual model-side skill invocation behavior.
+
 ## 9. Treat cache as sensitive
 
 Document summaries can contain evidence quotes, names, IDs, dates, metrics, sources, and rendered outputs. Prefer private cache permissions, short output-cache TTLs, and `ephemeral` mode for sensitive documents.
@@ -57,3 +59,7 @@ Document summaries can contain evidence quotes, names, IDs, dates, metrics, sour
 ## 10. Render untrusted fields safely
 
 Document titles, sources, summaries, actions, and risk text may contain raw HTML or Markdown injection. Escape model- and user-derived fields before rendering Markdown for downstream tools.
+
+## 11. Prepare short deployment descriptions
+
+Codex/OpenAI skill metadata can use a detailed `SKILL.md` description for precise triggering. Claude.ai upload flows may require a shorter description, so keep a 200-character-safe variant ready for packaging.

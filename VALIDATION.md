@@ -19,10 +19,12 @@ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 scripts/validate_skill.py --run
 Observed result:
 
 ```text
-40 passed in 0.28s
-OK: document briefing cache skill repository validated (11 test files, 3 eval cases, 9 trigger cases)
-OK: document briefing cache skill repository validated (11 test files, 3 eval cases, 9 trigger cases)
+42 passed in 0.27s
+OK: document briefing cache skill repository validated (12 test files, 3 eval cases, 9 trigger cases)
+OK: document briefing cache skill repository validated (12 test files, 3 eval cases, 9 trigger cases)
 ```
+
+Trigger evals are static boundary fixtures. They validate intended trigger coverage and near-miss cases, but they do not measure actual model-side invocation behavior.
 
 Smoke test using `examples/mixed_documents.json` and a fresh cache:
 

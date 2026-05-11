@@ -76,7 +76,8 @@ Only new document added → summarize only that document
 ├── examples/
 │   └── mixed_documents.json
 ├── evals/
-│   └── briefing_eval_cases.json
+│   ├── briefing_eval_cases.json
+│   └── trigger_eval_cases.json
 ├── scripts/
 │   └── validate_skill.py
 ├── tests/
@@ -107,6 +108,10 @@ python -m pytest -q
 python scripts/validate_skill.py
 python scripts/validate_skill.py --run-evals
 ```
+
+`--run-evals` executes the compact briefing evals and checks trigger evals as static boundary fixtures. Trigger evals validate intended trigger coverage and near-miss cases; they do not measure actual model-side invocation behavior.
+
+Claude.ai description variant: Cache structured briefings for supplied documents, notes, logs, tickets, reports, JSON/XML, or transcripts. Use for repeated summaries, rerendering, digests, actions, risks, or metrics.
 
 ## Run the sample
 
