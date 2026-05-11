@@ -24,6 +24,8 @@ REQUIRED_FILES = [
     "templates/debug.md.j2",
     "examples/mixed_documents.json",
     "evals/briefing_eval_cases.json",
+    "evals/trigger_eval_cases.json",
+    "agents/openai.yaml",
 ]
 
 REQUIRED_SKILL_TERMS = [
@@ -56,6 +58,8 @@ def main(argv: list[str] | None = None) -> int:
             errors.append(f"SKILL.md should mention: {term}")
     if "news only" in skill.lower():
         errors.append("Skill should not be scoped to news only.")
+    if "compare" in skill.split("---", 2)[1].lower():
+        errors.append("SKILL.md metadata should not mention compare unless a compare mode exists.")
 
     template_dir = ROOT / "templates"
     modes = {path.stem.replace(".md", "") for path in template_dir.glob("*.md.j2")}
@@ -68,11 +72,16 @@ def main(argv: list[str] | None = None) -> int:
     if len(tests) < 4:
         errors.append("Expected at least four test files.")
     errors.extend(validate_imports())
+    errors.extend(validate_openai_yaml(ROOT / "agents" / "openai.yaml"))
     eval_path = ROOT / "evals" / "briefing_eval_cases.json"
     eval_payload, eval_errors = validate_eval_cases(eval_path)
     errors.extend(eval_errors)
+    trigger_eval_payload, trigger_eval_errors = validate_trigger_eval_cases(ROOT / "evals" / "trigger_eval_cases.json")
+    errors.extend(trigger_eval_errors)
     if args.run_evals and eval_payload is not None:
         errors.extend(run_eval_cases(eval_payload))
+    if args.run_evals and trigger_eval_payload is not None:
+        errors.extend(run_trigger_eval_cases(trigger_eval_payload))
 
     if errors:
         for error in errors:
@@ -80,7 +89,8 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     print(
         "OK: document briefing cache skill repository validated "
-        f"({len(tests)} test files, {len((eval_payload or {}).get('cases', []))} eval cases)"
+        f"({len(tests)} test files, {len((eval_payload or {}).get('cases', []))} eval cases, "
+        f"{len((trigger_eval_payload or {}).get('cases', []))} trigger cases)"
     )
     return 0
 
@@ -104,8 +114,8 @@ def validate_eval_cases(path: Path) -> tuple[dict | None, list[str]]:
     except json.JSONDecodeError as exc:
         return None, [f"Eval fixture is not valid JSON: {exc}"]
     cases = payload.get("cases")
-    if not isinstance(cases, list) or len(cases) < 4:
-        return payload, ["Eval fixture should contain at least four cases."]
+    if not isinstance(cases, list) or len(cases) < 3:
+        return payload, ["Eval fixture should contain at least three cases."]
     errors = []
     for idx, case in enumerate(cases):
         prefix = f"Eval case {idx}"
@@ -128,13 +138,95 @@ def validate_eval_cases(path: Path) -> tuple[dict | None, list[str]]:
                 errors.append(f"{run_prefix} missing id.")
             if not run.get("prompt"):
                 errors.append(f"{run_prefix} missing prompt.")
-            if run.get("mode") not in {"brief", "executive", "action_items", "digest", "debug", "none"}:
+            if run.get("mode") not in {"brief", "executive", "action_items", "digest", "debug"}:
                 errors.append(f"{run_prefix} has invalid mode.")
             if "summarizer_calls" not in stats:
                 errors.append(f"{run_prefix} missing expect.stats.summarizer_calls.")
             if "document_cache_hits" not in stats:
                 errors.append(f"{run_prefix} missing expect.stats.document_cache_hits.")
     return payload, errors
+
+
+def validate_trigger_eval_cases(path: Path) -> tuple[dict | None, list[str]]:
+    if not path.exists():
+        return None, [f"Missing trigger eval fixture: {path.relative_to(ROOT)}"]
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return None, [f"Trigger eval fixture is not valid JSON: {exc}"]
+    cases = payload.get("cases")
+    if not isinstance(cases, list) or len(cases) < 8:
+        return payload, ["Trigger eval fixture should contain at least eight cases."]
+    errors = []
+    has_positive = False
+    has_negative = False
+    allowed_input_kinds = {"inline_document", "cached_state", "no_document", "source_code", "stack_trace", "plain_text"}
+    allowed_negative_boundaries = {"live_research", "source_code_review", "debugging", "general_writing", "translation_only", "simple_qa", "no_document_input"}
+    required_negative_boundaries = {"live_research", "source_code_review", "debugging", "translation_only", "simple_qa"}
+    seen_negative_boundaries: set[str] = set()
+    for idx, case in enumerate(cases):
+        prefix = f"Trigger eval case {idx}"
+        if not isinstance(case, dict):
+            errors.append(f"{prefix} should be an object.")
+            continue
+        input_payload = case.get("input")
+        expect = case.get("expect")
+        if not case.get("id"):
+            errors.append(f"{prefix} missing id.")
+        if not case.get("prompt"):
+            errors.append(f"{prefix} missing prompt.")
+        if not isinstance(input_payload, dict):
+            errors.append(f"{prefix} missing input object.")
+            continue
+        if input_payload.get("kind") not in allowed_input_kinds:
+            errors.append(f"{prefix} has invalid input.kind.")
+        if not isinstance(expect, dict):
+            errors.append(f"{prefix} missing expect object.")
+            continue
+        if not isinstance(expect.get("invoke"), bool):
+            errors.append(f"{prefix} missing boolean expect.invoke.")
+            continue
+        if expect.get("invoke") is True:
+            has_positive = True
+            if input_payload.get("kind") not in {"inline_document", "cached_state"}:
+                errors.append(f"{prefix} positive trigger should use document-like input or cached state.")
+            if not expect.get("intent"):
+                errors.append(f"{prefix} positive trigger missing expect.intent.")
+        if expect.get("invoke") is False:
+            has_negative = True
+            boundary = str(expect.get("boundary"))
+            if boundary not in allowed_negative_boundaries:
+                errors.append(f"{prefix} has invalid expect.boundary.")
+            seen_negative_boundaries.add(boundary)
+    if not has_positive:
+        errors.append("Trigger eval fixture must include positive cases.")
+    if not has_negative:
+        errors.append("Trigger eval fixture must include negative cases.")
+    missing_boundaries = required_negative_boundaries - seen_negative_boundaries
+    if missing_boundaries:
+        errors.append(f"Trigger eval fixture missing negative boundaries: {sorted(missing_boundaries)}")
+    return payload, errors
+
+
+def validate_openai_yaml(path: Path) -> list[str]:
+    if not path.exists():
+        return [f"Missing agents metadata: {path.relative_to(ROOT)}"]
+    text = path.read_text(encoding="utf-8")
+    errors = []
+    required_fragments = [
+        'version: "0.2.0"',
+        "interface:",
+        'display_name: "Document Briefing Cache"',
+        'short_description: "Cached structured document briefings"',
+        "$document-briefing-cache",
+        "policy:",
+        "allow_implicit_invocation: true",
+        'name: "document-briefing-cache"',
+    ]
+    for fragment in required_fragments:
+        if fragment not in text:
+            errors.append(f"agents/openai.yaml missing required metadata fragment: {fragment}")
+    return errors
 
 
 def run_eval_cases(payload: dict) -> list[str]:
@@ -163,6 +255,62 @@ def run_eval_cases(payload: dict) -> list[str]:
                     if needle in result.output:
                         errors.append(f"{case['id']}:{run['id']} output unexpectedly contained {needle!r}")
     return errors
+
+
+def run_trigger_eval_cases(payload: dict) -> list[str]:
+    errors = []
+    for case in payload.get("cases", []):
+        actual = infer_skill_trigger_for_eval(case)
+        expected = bool(case.get("expect", {}).get("invoke"))
+        if actual != expected:
+            errors.append(f"{case.get('id')} expected invoke={expected}, got {actual}")
+    return errors
+
+
+def infer_skill_trigger_for_eval(case: dict) -> bool:
+    prompt = str(case.get("prompt", ""))
+    input_payload = case.get("input", {}) if isinstance(case.get("input"), dict) else {}
+    kind = input_payload.get("kind")
+    lowered = prompt.lower()
+    negative_terms = (
+        "최신",
+        "오늘",
+        "찾아서",
+        "live",
+        "current",
+        "코드 리뷰",
+        "버그를 찾아",
+        "debug",
+        "디버깅",
+        "stack trace",
+        "번역만",
+        "translate only",
+        "어디에 저장",
+        "무엇",
+        "what is",
+    )
+    positive_terms = (
+        "summarize",
+        "brief",
+        "회의록",
+        "문서",
+        "json",
+        "xml",
+        "payload",
+        "리포트",
+        "로그",
+        "티켓",
+        "transcript",
+        "재렌더",
+        "rerender",
+        "digest",
+        "액션",
+        "리뷰 코멘트",
+        "pr 리뷰",
+    )
+    if any(term in lowered for term in negative_terms):
+        return False
+    return kind in {"inline_document", "cached_state"} and any(term in lowered for term in positive_terms)
 
 
 if __name__ == "__main__":

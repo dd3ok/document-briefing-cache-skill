@@ -7,7 +7,7 @@ def test_eval_fixture_cases_define_cache_and_trigger_expectations():
 
     payload = json.loads(path.read_text(encoding="utf-8"))
 
-    assert len(payload["cases"]) >= 4
+    assert len(payload["cases"]) >= 3
     for case in payload["cases"]:
         assert case["id"]
         assert "documents" in case["input"]
@@ -15,6 +15,6 @@ def test_eval_fixture_cases_define_cache_and_trigger_expectations():
         for run in case["runs"]:
             assert run["id"]
             assert run["prompt"]
-            assert run["mode"] in {"brief", "executive", "action_items", "digest", "debug", "none"}
+            assert run["mode"] in {"brief", "executive", "action_items", "digest", "debug"}
             assert "summarizer_calls" in run["expect"]["stats"]
             assert "document_cache_hits" in run["expect"]["stats"]

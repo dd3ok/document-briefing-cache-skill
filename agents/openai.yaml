@@ -1,28 +1,36 @@
-name: document-briefing-cache
-version: 0.1.0
-entrypoint: SKILL.md
-summary: >
-  Document briefing skill for repeated or rerendered document-like inputs. It
-  normalizes inputs, caches DocumentSummaryState per fingerprint, and renders
-  brief, executive, action_items, digest, or debug outputs without unnecessary
-  LLM calls.
-triggers:
-  - summarize these supplied documents
-  - brief this report from cache
-  - recap these meeting notes and reuse the summary
-  - summarize this JSON or XML payload
-  - create an executive digest for this document set
-  - rerender this briefing as digest or action_items
-  - summarize again without reprocessing the same documents
-recommended_tools:
-  - python
-  - filesystem
-  - cache
-boundaries:
-  - Do not use for live research or current-fact lookup.
-  - Do not use for source-code review or debugging.
-  - Do not use when there is no document-like input to cache or rerender.
-privacy:
-  - rules mode is local and token-free.
-  - LLM-backed modes send cache misses to the configured provider.
-  - Cache files may contain names, IDs, dates, metrics, sources, and evidence quotes.
+version: "0.2.0"
+
+interface:
+  display_name: "Document Briefing Cache"
+  short_description: "Cached structured document briefings"
+  default_prompt: "Use $document-briefing-cache to summarize the supplied documents into a cached briefing and include cache stats."
+
+policy:
+  allow_implicit_invocation: true
+
+metadata:
+  name: "document-briefing-cache"
+  entrypoint: "SKILL.md"
+  summary: "Normalizes supplied document-like inputs, caches DocumentSummaryState per fingerprint, and renders repeated briefings without unnecessary LLM calls."
+  supported_modes:
+    - "brief"
+    - "executive"
+    - "action_items"
+    - "digest"
+    - "debug"
+  triggers:
+    - "summarize these supplied documents"
+    - "brief this report from cache"
+    - "recap these meeting notes and reuse the summary"
+    - "summarize this JSON or XML payload"
+    - "create an executive digest for this document set"
+    - "rerender this briefing as digest or action_items"
+    - "summarize again without reprocessing the same documents"
+  boundaries:
+    - "Do not use for live research or current-fact lookup."
+    - "Do not use for source-code review or debugging."
+    - "Do not use when there is no document-like input to cache or rerender."
+  privacy:
+    - "rules mode is local and token-free."
+    - "LLM-backed modes send cache misses to the configured provider."
+    - "Cache files may contain names, IDs, dates, metrics, sources, and evidence quotes."

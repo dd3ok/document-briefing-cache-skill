@@ -15,7 +15,7 @@ from .normalize import split_into_sections
 from .render import TEMPLATE_VERSION, render_briefing
 from .summarizers import BaseSummarizer, RuleBasedExtractiveSummarizer
 
-SKILL_VERSION = "0.1.0"
+SKILL_VERSION = "0.2.0"
 
 
 class BriefingPipeline:

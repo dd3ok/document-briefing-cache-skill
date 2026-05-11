@@ -116,26 +116,6 @@
           }
         }
       ]
-    },
-    {
-      "id": "negative-trigger-fresh-fact-lookup",
-      "input": {
-        "documents": []
-      },
-      "runs": [
-        {
-          "id": "do-not-invoke",
-          "prompt": "오늘 최신 금융 뉴스를 찾아서 분석해줘.",
-          "mode": "none",
-          "expect": {
-            "should_invoke_skill": false,
-            "stats": {
-              "summarizer_calls": 0,
-              "document_cache_hits": 0
-            }
-          }
-        }
-      ]
     }
   ]
 }

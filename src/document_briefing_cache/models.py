@@ -27,7 +27,7 @@ class DocumentType(str, Enum):
     news = "news"
     web_page = "web_page"
     transcript = "transcript"
-    code_review = "code_review"
+    review_comments = "review_comments"
     unknown = "unknown"
 
 

@@ -1,0 +1,114 @@
+{
+  "schema_version": "1.0.0",
+  "description": "Skill trigger and boundary fixtures only; no pipeline execution.",
+  "cases": [
+    {
+      "id": "pos-meeting-brief-inline",
+      "prompt": "Summarize these meeting notes and extract action items.",
+      "input": {
+        "kind": "inline_document",
+        "doc_type": "meeting_notes",
+        "content_format": "markdown",
+        "sample": "Decision: ship. Action: Backend should patch PAY-482 by 2026-05-10."
+      },
+      "expect": {
+        "invoke": true,
+        "intent": "summarize"
+      }
+    },
+    {
+      "id": "pos-json-digest",
+      "prompt": "이 JSON payload를 임원용 digest로 바꿔줘.",
+      "input": {
+        "kind": "inline_document",
+        "doc_type": "api_payload",
+        "content_format": "json",
+        "sample": "{\"incident_id\":\"INC-2026-042\",\"error_rate\":\"2.4%\"}"
+      },
+      "expect": {
+        "invoke": true,
+        "intent": "digest"
+      }
+    },
+    {
+      "id": "pos-template-rerender",
+      "prompt": "같은 문서를 action_items 형식으로 재렌더링해줘.",
+      "input": {
+        "kind": "cached_state"
+      },
+      "expect": {
+        "invoke": true,
+        "intent": "rerender"
+      }
+    },
+    {
+      "id": "pos-review-comments-document",
+      "prompt": "이 PR 리뷰 코멘트 묶음을 요약하고 남은 액션만 정리해줘.",
+      "input": {
+        "kind": "inline_document",
+        "doc_type": "review_comments",
+        "content_format": "markdown",
+        "sample": "Reviewer A: Please add evidence tests. Reviewer B: cache invalidation looks good."
+      },
+      "expect": {
+        "invoke": true,
+        "intent": "summarize_review_comments"
+      }
+    },
+    {
+      "id": "neg-live-research",
+      "prompt": "오늘 최신 금융 뉴스를 찾아서 분석해줘.",
+      "input": {
+        "kind": "no_document"
+      },
+      "expect": {
+        "invoke": false,
+        "boundary": "live_research"
+      }
+    },
+    {
+      "id": "neg-source-code-review",
+      "prompt": "Review this diff and find bugs in the implementation.",
+      "input": {
+        "kind": "source_code"
+      },
+      "expect": {
+        "invoke": false,
+        "boundary": "source_code_review"
+      }
+    },
+    {
+      "id": "neg-debugging",
+      "prompt": "이 stack trace 원인을 디버깅하고 수정 방법을 알려줘.",
+      "input": {
+        "kind": "stack_trace"
+      },
+      "expect": {
+        "invoke": false,
+        "boundary": "debugging"
+      }
+    },
+    {
+      "id": "neg-translation-only",
+      "prompt": "이 문장을 영어로 번역만 해줘.",
+      "input": {
+        "kind": "plain_text"
+      },
+      "expect": {
+        "invoke": false,
+        "boundary": "translation_only"
+      }
+    },
+    {
+      "id": "neg-simple-qa",
+      "prompt": "캐시는 보통 어디에 저장돼?",
+      "input": {
+        "kind": "no_document"
+      },
+      "expect": {
+        "invoke": false,
+        "boundary": "simple_qa"
+      }
+    }
+  ]
+}

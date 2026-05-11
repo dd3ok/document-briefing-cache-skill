@@ -7,7 +7,7 @@
   "document_id": "optional stable id",
   "title": "optional title",
   "source": "optional URL/path/source",
-  "doc_type": "report | meeting_notes | email | ticket | log | policy | api_payload | news | web_page | transcript | code_review | unknown",
+  "doc_type": "report | meeting_notes | email | ticket | log | policy | api_payload | news | web_page | transcript | review_comments | unknown",
   "content_format": "text | markdown | html | json | xml | pdf_text | unknown",
   "text": "normalized text",
   "raw": "optional original payload",
@@ -46,3 +46,5 @@
 ## Design rule
 
 Do not store only the final natural-language paragraph. Store this state, then render paragraphs from it.
+
+`review_comments` means exported review feedback, PR discussion, or comment-thread documents. It does not mean performing source-code review or debugging source code.

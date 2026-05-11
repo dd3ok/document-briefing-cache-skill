@@ -19,9 +19,9 @@ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 scripts/validate_skill.py --run
 Observed result:
 
 ```text
-35 passed in 0.27s
-OK: document briefing cache skill repository validated (9 test files, 4 eval cases)
-OK: document briefing cache skill repository validated (9 test files, 4 eval cases)
+40 passed in 0.28s
+OK: document briefing cache skill repository validated (11 test files, 3 eval cases, 9 trigger cases)
+OK: document briefing cache skill repository validated (11 test files, 3 eval cases, 9 trigger cases)
 ```
 
 Smoke test using `examples/mixed_documents.json` and a fresh cache:
@@ -50,6 +50,7 @@ Expected properties:
 
 - The skill metadata exists in `SKILL.md`.
 - Trigger boundaries avoid source-code review, live lookup, and non-document Q&A.
+- Trigger evals separately cover positive document-briefing cases and negative boundary cases.
 - The implementation has deterministic document fingerprints.
 - Repeated documents are served from document-level cache.
 - Re-rendering from another template does not trigger re-summarization.
