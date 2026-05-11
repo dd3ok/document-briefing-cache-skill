@@ -57,6 +57,7 @@ Only new document added → summarize only that document
 │   ├── hashing.py
 │   ├── cache.py
 │   ├── evidence.py
+│   ├── privacy.py
 │   ├── normalize.py
 │   ├── summarizers.py
 │   ├── render.py
@@ -77,7 +78,8 @@ Only new document added → summarize only that document
 │   └── mixed_documents.json
 ├── evals/
 │   ├── briefing_eval_cases.json
-│   └── trigger_eval_cases.json
+│   ├── trigger_eval_cases.json
+│   └── model_invocation_benchmark_cases.json
 ├── scripts/
 │   └── validate_skill.py
 ├── tests/
@@ -109,7 +111,9 @@ python scripts/validate_skill.py
 python scripts/validate_skill.py --run-evals
 ```
 
-`--run-evals` executes the compact briefing evals and checks trigger evals as static boundary fixtures. Trigger evals validate intended trigger coverage and near-miss cases; they do not measure actual model-side invocation behavior.
+`--run-evals` executes the compact briefing evals, including structured-state assertions for actions, risks, metrics, and evidence. It also checks trigger evals as static boundary fixtures. Trigger evals validate intended trigger coverage and near-miss cases; they do not measure actual model-side invocation behavior.
+
+`evals/model_invocation_benchmark_cases.json` is a manual benchmark worksheet for hosts that expose real skill invocation telemetry. It is schema-validated, but CI does not claim to measure model-side routing.
 
 Claude.ai description variant: Cache structured briefings for supplied documents, notes, logs, tickets, reports, JSON/XML, or transcripts. Use for repeated summaries, rerendering, digests, actions, risks, or metrics.
 
@@ -171,12 +175,19 @@ python -m document_briefing_cache.cli run \
 For sensitive documents:
 
 ```bash
+export DBC_CACHE_HMAC_SECRET="replace-with-a-local-secret"
 python -m document_briefing_cache.cli run \
   --input sensitive.json \
   --cache-policy ephemeral \
   --no-output-cache \
-  --delete-on-exit created
+  --delete-on-exit created \
+  --redact-pii \
+  --cache-hmac-secret-env DBC_CACHE_HMAC_SECRET
 ```
+
+`--redact-pii` applies the built-in `basic-contact-v1` redaction profile before cache misses are summarized, and redacted/non-redacted cache keys are separated. The current profile covers common email addresses, Korean mobile numbers, and US phone numbers.
+
+`--cache-hmac-secret-env` signs cache envelopes with HMAC-SHA256 using the named environment variable. Signed caches fail closed when the secret is missing and reject payload or expiry metadata tampering. This is integrity protection, not encryption.
 
 Cache maintenance commands:
 
@@ -198,7 +209,7 @@ The default `rules` summarizer is intentionally deterministic and token-free. It
 
 For high-quality summaries of new documents, connect an LLM summarizer at the cache-miss step. Keep the output structured as `DocumentSummaryState`.
 
-Privacy note: `rules` mode is local and token-free. LLM-backed summarizers send cache misses to the configured provider, such as OpenAI, and require the relevant API key. Cache directories may persist structured summaries, names, IDs, dates, metrics, evidence quotes, sources, and rendered outputs. Keep `.cache/` out of git and use `ephemeral` or explicit cache clearing for sensitive documents.
+Privacy note: `rules` mode is local and token-free. LLM-backed summarizers send cache misses to the configured provider, such as OpenAI, and require the relevant API key. Cache directories are plaintext JSON and may persist structured summaries, names, IDs, dates, metrics, evidence quotes, sources, and rendered outputs. HMAC detects tampering but does not hide contents. Keep `.cache/` out of git, use encrypted storage or tmpfs when needed, and use `ephemeral`, `--redact-pii`, or explicit cache clearing for sensitive documents.
 
 ## Recommended production design
 

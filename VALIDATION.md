@@ -19,12 +19,13 @@ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 scripts/validate_skill.py --run
 Observed result:
 
 ```text
-42 passed in 0.27s
-OK: document briefing cache skill repository validated (12 test files, 3 eval cases, 9 trigger cases)
-OK: document briefing cache skill repository validated (12 test files, 3 eval cases, 9 trigger cases)
+55 passed in 0.33s
+OK: document briefing cache skill repository validated (14 test files, 6 eval cases, 9 trigger cases, 4 model benchmark cases)
+OK: document briefing cache skill repository validated (14 test files, 6 eval cases, 9 trigger cases, 4 model benchmark cases)
 ```
 
 Trigger evals are static boundary fixtures. They validate intended trigger coverage and near-miss cases, but they do not measure actual model-side invocation behavior.
+Model invocation benchmark cases are manual worksheets for hosts that expose real invocation telemetry.
 
 Smoke test using `examples/mixed_documents.json` and a fresh cache:
 
@@ -58,6 +59,8 @@ Expected properties:
 - Re-rendering from another template does not trigger re-summarization.
 - Cached summaries are rejected when fingerprint, schema, document id, or summarizer id does not match.
 - Cache envelopes include payload digests and private POSIX permissions where the filesystem supports them.
+- HMAC-signed cache envelopes reject payload and expiry metadata tampering when configured.
+- Basic contact PII redaction runs before cache-miss summarization and separates redacted/non-redacted cache keys.
 - Rendered Markdown escapes untrusted document/model fields.
 - The default rules summarizer can run without an LLM or network access.
 - The repository includes templates, references, tests, examples, evals, and a CLI.
@@ -68,6 +71,7 @@ Production validation should continue adding real samples from the target domain
 - missing-value behavior,
 - action item extraction,
 - risk extraction,
+- structured-state assertions for actions, risks, metrics, evidence, and unknowns,
 - LLM call count,
 - cache hit rate,
 - output readability,

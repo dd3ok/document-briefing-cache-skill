@@ -55,6 +55,8 @@ class CacheConfig(BaseModel):
     prune_on_exit: bool = False
     delete_on_exit: Literal["none", "created", "all"] = "none"
     validate_evidence: bool = True
+    cache_hmac_secret_env: str | None = None
+    redact_pii: bool = False
 
 
 class DocumentSection(BaseModel):
@@ -153,6 +155,7 @@ class PipelineStats(BaseModel):
     entries_pruned: int = 0
     bytes_pruned: int = 0
     evidence_validation_errors: int = 0
+    pii_redactions: int = 0
     delete_on_exit_applied: bool = False
 
 

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "description": "Compact behavioral fixtures for document briefing cache triggers, reuse, and value preservation.",
+  "description": "Compact behavioral fixtures for document briefing cache triggers, reuse, structured state, and value preservation.",
   "cases": [
     {
       "id": "meeting-cache-and-rerender",
@@ -28,7 +28,13 @@
               "document_cache_misses": 1
             },
             "contains": ["PAY-482", "2026-05-10", "183 ms"],
-            "not_contains": ["PAY-483", "2026-05-11"]
+            "not_contains": ["PAY-483", "2026-05-11"],
+            "summary_state": {
+              "actions_contains": ["PAY-482", "2026-05-10"],
+              "risks_contains": ["gateway latency"],
+              "metrics_contains": ["183", "ms"],
+              "evidence_contains": ["PAY-482", "183 ms"]
+            }
           }
         },
         {
@@ -43,7 +49,11 @@
               "document_cache_misses": 0
             },
             "contains": ["PAY-482", "2026-05-10"],
-            "not_contains": ["PAY-483"]
+            "not_contains": ["PAY-483"],
+            "summary_state": {
+              "actions_contains": ["PAY-482", "2026-05-10"],
+              "evidence_contains": ["PAY-482"]
+            }
           }
         }
       ]
@@ -80,7 +90,12 @@
               "document_cache_misses": 1
             },
             "contains": ["INC-2026-042", "2.4%", "2026-05-12"],
-            "not_contains": ["2.5%", "2026-05-13"]
+            "not_contains": ["2.5%", "2026-05-13"],
+            "summary_state": {
+              "actions_contains": ["Rollback", "2026-05-12"],
+              "metrics_contains": ["2.4", "%"],
+              "evidence_contains": ["INC-2026-042", "2.4%"]
+            }
           }
         }
       ]
@@ -112,7 +127,130 @@
               "document_cache_misses": 1
             },
             "contains": ["INC-2026-077", "2026-05-12"],
-            "not_contains": ["INC-2026-078"]
+            "not_contains": ["INC-2026-078"],
+            "summary_state": {
+              "actions_contains": ["Security", "2026-05-12"],
+              "metrics_contains": ["12"],
+              "evidence_contains": ["INC-2026-077"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "support-incident-policy-bundle",
+      "input": {
+        "documents": [
+          {
+            "document_id": "INC-2026-091",
+            "title": "Checkout support incident",
+            "doc_type": "ticket",
+            "content_format": "text",
+            "text": "Incident INC-2026-091 affected 37 checkout sessions on 2026-05-09. Risk: P1 support backlog may exceed SLA. Action: Support owner Mira should update SUP-918 by 2026-05-13. Metric: refund queue reached 14 tickets."
+          },
+          {
+            "document_id": "policy-refunds-2026",
+            "title": "Refund acknowledgement policy",
+            "doc_type": "policy",
+            "content_format": "text",
+            "text": "Policy: Priority refunds must be acknowledged within 2 days. Decision: temporary weekend review approved."
+          }
+        ]
+      },
+      "runs": [
+        {
+          "id": "brief",
+          "prompt": "이 지원 이슈와 정책 문서를 함께 요약하고 리스크와 액션을 뽑아줘.",
+          "mode": "brief",
+          "use_output_cache": false,
+          "expect": {
+            "stats": {
+              "summarizer_calls": 2,
+              "document_cache_hits": 0,
+              "document_cache_misses": 2
+            },
+            "contains": ["INC-2026-091", "SUP-918", "2026-05-13", "2 days"],
+            "not_contains": ["INC-2026-092"],
+            "summary_state": {
+              "actions_contains": ["SUP-918", "2026-05-13"],
+              "risks_contains": ["P1 support backlog"],
+              "metrics_contains": ["37", "14"],
+              "evidence_contains": ["INC-2026-091", "SUP-918"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "transcript-report-excerpt",
+      "input": {
+        "documents": [
+          {
+            "document_id": "transcript-launch-2026-05-11",
+            "title": "Launch readiness transcript",
+            "doc_type": "transcript",
+            "content_format": "text",
+            "text": "Transcript excerpt: Dana confirmed that the rehearsal lasted 240 sec. Decision: QA signoff remains required before release. Risk: migration delay could block QA. Action: Ops should prepare launch checklist by 2026-05-15. Open question: who owns rollback communications?"
+          }
+        ]
+      },
+      "runs": [
+        {
+          "id": "digest",
+          "prompt": "이 대화록을 짧은 digest로 만들고 액션, 리스크, 열린 질문을 보존해줘.",
+          "mode": "digest",
+          "use_output_cache": false,
+          "expect": {
+            "stats": {
+              "summarizer_calls": 1,
+              "document_cache_hits": 0,
+              "document_cache_misses": 1
+            },
+            "contains": ["2026-05-15"],
+            "not_contains": ["2026-05-16"],
+            "summary_state": {
+              "actions_contains": ["launch checklist", "2026-05-15"],
+              "risks_contains": ["migration delay"],
+              "metrics_contains": ["240", "sec"],
+              "evidence_contains": ["rollback communications"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "privacy-redaction-support-ticket",
+      "input": {
+        "redact_pii": true,
+        "documents": [
+          {
+            "document_id": "TCK-55",
+            "title": "Customer contact follow-up",
+            "doc_type": "ticket",
+            "content_format": "text",
+            "text": "Ticket TCK-55. Action: Support should email bob@example.com and call 010-2222-3333 by 2026-05-16. Risk: response delay may miss SLA."
+          }
+        ]
+      },
+      "runs": [
+        {
+          "id": "brief-redacted",
+          "prompt": "이 지원 티켓은 연락처를 마스킹해서 요약해줘.",
+          "mode": "brief",
+          "use_output_cache": false,
+          "expect": {
+            "stats": {
+              "summarizer_calls": 1,
+              "document_cache_hits": 0,
+              "document_cache_misses": 1
+            },
+            "contains": ["REDACTED:email", "REDACTED:phone", "2026-05-16"],
+            "not_contains": ["bob@example.com", "010-2222-3333"],
+            "summary_state": {
+              "actions_contains": ["[REDACTED:email]", "[REDACTED:phone]", "2026-05-16"],
+              "risks_contains": ["response delay"],
+              "evidence_contains": ["[REDACTED:email]", "[REDACTED:phone]"]
+            }
           }
         }
       ]

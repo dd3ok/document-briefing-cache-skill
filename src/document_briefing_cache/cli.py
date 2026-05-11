@@ -31,6 +31,8 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--prune-on-start", action="store_true")
     parser.add_argument("--prune-on-exit", action="store_true")
     parser.add_argument("--delete-on-exit", default="none", choices=["none", "created", "all"])
+    parser.add_argument("--redact-pii", action="store_true", help="Redact basic contact PII before summarization and cache writes.")
+    parser.add_argument("--cache-hmac-secret-env", default=None, help="Environment variable containing the cache HMAC signing secret.")
     parser.add_argument("--show-stats", action="store_true")
 
 
@@ -96,6 +98,8 @@ def run_with_args(args: argparse.Namespace) -> int:
         prune_on_start=args.prune_on_start,
         prune_on_exit=args.prune_on_exit,
         delete_on_exit=args.delete_on_exit,
+        cache_hmac_secret_env=args.cache_hmac_secret_env,
+        redact_pii=args.redact_pii,
     )
     pipeline = BriefingPipeline(cache_config=cache_config, summarizer=summarizer)
     result = pipeline.run(

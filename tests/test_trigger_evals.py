@@ -23,7 +23,7 @@ def test_trigger_eval_fixture_covers_positive_and_negative_boundaries():
     assert any(case["prompt"] == "오늘 최신 금융 뉴스를 찾아서 분석해줘." for case in cases)
 
 
-def test_trigger_eval_runner_detects_expected_invocation_decisions():
+def test_trigger_eval_runner_lints_static_boundary_fixtures():
     path = ROOT / "evals" / "trigger_eval_cases.json"
     payload = json.loads(path.read_text(encoding="utf-8"))
 

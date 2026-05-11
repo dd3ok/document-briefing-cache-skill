@@ -1,0 +1,148 @@
+import json
+
+import pytest
+
+from document_briefing_cache.models import CacheConfig, DocumentInput
+from document_briefing_cache.pipeline import BriefingPipeline
+from document_briefing_cache.summarizers import RuleBasedExtractiveSummarizer
+
+
+class CapturingSummarizer(RuleBasedExtractiveSummarizer):
+    summarizer_id = "capturing-redaction-v1"
+
+    def __init__(self):
+        self.seen_document_text = ""
+        self.seen_sections = []
+
+    def summarize(self, document, sections, content_fingerprint):
+        self.seen_document_text = document.text or ""
+        self.seen_sections = [section.text for section in sections]
+        return super().summarize(document, sections, content_fingerprint)
+
+
+def test_pipeline_redacts_pii_from_output_and_cached_summaries(tmp_path):
+    docs = [
+        DocumentInput(
+            document_id="privacy",
+            title="Customer follow-up",
+            text="Action: Support should email alice@example.com and call 010-1234-5678 by 2026-05-12.",
+        )
+    ]
+    config = CacheConfig(cache_dir=str(tmp_path), output_cache=True, redact_pii=True)
+
+    result = BriefingPipeline(cache_config=config).run(docs, use_output_cache=True)
+
+    assert "alice@example.com" not in result.output
+    assert "010-1234-5678" not in result.output
+    assert "REDACTED:email" in result.output
+    assert "REDACTED:phone" in result.output
+    assert result.stats.pii_redactions >= 2
+
+    cached_text = "\n".join(path.read_text(encoding="utf-8") for path in tmp_path.rglob("*.json"))
+    assert "alice@example.com" not in cached_text
+    assert "010-1234-5678" not in cached_text
+
+
+def test_pipeline_hmac_signs_cache_entries_from_configured_env(tmp_path, monkeypatch):
+    monkeypatch.setenv("DBC_TEST_HMAC", "secret")
+    docs = [DocumentInput(document_id="signed", title="Signed", text="Decision: proceed.")]
+    config = CacheConfig(cache_dir=str(tmp_path), cache_hmac_secret_env="DBC_TEST_HMAC")
+
+    BriefingPipeline(cache_config=config).run(docs)
+
+    cache_file = next((tmp_path / "document_summaries").glob("*.json"))
+    envelope = json.loads(cache_file.read_text(encoding="utf-8"))
+    assert envelope["payload_hmac_sha256"]
+
+
+def test_redacted_run_does_not_use_prior_unredacted_output_cache(tmp_path):
+    docs = [
+        DocumentInput(
+            document_id="ticket-privacy",
+            title="Customer follow-up",
+            text="Action: Support should email alice@example.com by 2026-05-12.",
+        )
+    ]
+
+    raw_result = BriefingPipeline(cache_config=CacheConfig(cache_dir=str(tmp_path), output_cache=True)).run(docs, use_output_cache=True)
+    assert "alice@example.com" in raw_result.output
+
+    redacted_config = CacheConfig(cache_dir=str(tmp_path), output_cache=True, redact_pii=True)
+    redacted_result = BriefingPipeline(cache_config=redacted_config).run(docs, use_output_cache=True)
+
+    assert redacted_result.stats.output_cache_hit is False
+    assert redacted_result.stats.document_cache_hits == 0
+    assert "alice@example.com" not in redacted_result.output
+    assert "REDACTED:email" in redacted_result.output
+
+
+def test_redacted_run_does_not_use_prior_unredacted_document_cache(tmp_path):
+    docs = [
+        DocumentInput(
+            document_id="ticket-privacy",
+            title="Customer follow-up",
+            text="Action: Support should email alice@example.com by 2026-05-12.",
+        )
+    ]
+
+    BriefingPipeline(cache_config=CacheConfig(cache_dir=str(tmp_path), output_cache=False)).run(docs, use_output_cache=False)
+
+    redacted_config = CacheConfig(cache_dir=str(tmp_path), output_cache=False, redact_pii=True)
+    redacted_result = BriefingPipeline(cache_config=redacted_config).run(docs, use_output_cache=False)
+
+    assert redacted_result.stats.document_cache_hits == 0
+    assert redacted_result.stats.document_cache_misses == 1
+    assert "alice@example.com" not in redacted_result.output
+    assert "REDACTED:email" in redacted_result.output
+
+
+def test_redaction_runs_before_summarizer_sees_document_text(tmp_path):
+    docs = [
+        DocumentInput(
+            document_id="ticket-privacy",
+            title="Customer follow-up",
+            text="Action: Support should email alice@example.com and call 010-1234-5678 by 2026-05-12.",
+        )
+    ]
+    summarizer = CapturingSummarizer()
+
+    BriefingPipeline(
+        cache_config=CacheConfig(cache_dir=str(tmp_path), output_cache=False, redact_pii=True),
+        summarizer=summarizer,
+    ).run(docs, use_output_cache=False)
+
+    seen_text = "\n".join([summarizer.seen_document_text, *summarizer.seen_sections])
+    assert "alice@example.com" not in seen_text
+    assert "010-1234-5678" not in seen_text
+    assert "[REDACTED:email]" in seen_text
+    assert "[REDACTED:phone]" in seen_text
+
+
+def test_redacted_document_identity_does_not_break_cache_hits(tmp_path):
+    docs = [
+        DocumentInput(
+            document_id="alice@example.com",
+            source="mailto:alice@example.com",
+            title="Customer follow-up",
+            text="Action: Support should call 010-1234-5678 by 2026-05-12.",
+        )
+    ]
+    config = CacheConfig(cache_dir=str(tmp_path), output_cache=False, redact_pii=True)
+
+    first = BriefingPipeline(cache_config=config).run(docs, use_output_cache=False)
+    second = BriefingPipeline(cache_config=config).run(docs, use_output_cache=False)
+
+    assert second.stats.document_cache_hits == 1
+    visible_stats = json.dumps(first.stats.model_dump(mode="json"), ensure_ascii=False)
+    assert "alice@example.com" not in visible_stats
+    assert "mailto:alice@example.com" not in visible_stats
+    cached_text = "\n".join(path.read_text(encoding="utf-8") for path in tmp_path.rglob("*.json"))
+    assert "alice@example.com" not in cached_text
+    assert "010-1234-5678" not in cached_text
+
+
+def test_pipeline_hmac_secret_env_missing_fails_closed(tmp_path, monkeypatch):
+    monkeypatch.delenv("DBC_MISSING_HMAC", raising=False)
+
+    with pytest.raises(RuntimeError, match="DBC_MISSING_HMAC"):
+        BriefingPipeline(cache_config=CacheConfig(cache_dir=str(tmp_path), cache_hmac_secret_env="DBC_MISSING_HMAC"))

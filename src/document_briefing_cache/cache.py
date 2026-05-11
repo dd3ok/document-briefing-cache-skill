@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import hashlib
+import hmac
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -31,11 +32,12 @@ class CacheOperationResult:
 class JsonFileCache:
     """Small JSON cache for local deterministic skill runs."""
 
-    def __init__(self, cache_dir: str | Path, namespace: str):
+    def __init__(self, cache_dir: str | Path, namespace: str, hmac_secret: str | None = None):
         self.root = Path(cache_dir) / namespace
         self.root.mkdir(parents=True, exist_ok=True)
         self._harden_permissions(self.root, directory=True)
         self.namespace = namespace
+        self.hmac_secret = hmac_secret
         self._created_paths: set[Path] = set()
 
     def path_for(self, key: str) -> Path:
@@ -76,6 +78,8 @@ class JsonFileCache:
             "payload": value,
         }
         envelope["payload_sha256"] = _stable_payload_sha256(value)
+        if self.hmac_secret:
+            envelope["payload_hmac_sha256"] = _stable_envelope_hmac_sha256(self.hmac_secret, envelope)
         self._write_entry(path, envelope)
         self._created_paths.add(path)
 
@@ -200,6 +204,11 @@ class JsonFileCache:
         expected_digest = value.get("payload_sha256")
         if expected_digest and expected_digest != _stable_payload_sha256(payload):
             return False
+        if self.hmac_secret:
+            expected_hmac = _stable_envelope_hmac_sha256(self.hmac_secret, value)
+            actual_hmac = value.get("payload_hmac_sha256")
+            if not isinstance(actual_hmac, str) or not hmac.compare_digest(actual_hmac, expected_hmac):
+                return False
         return True
 
     def _harden_permissions(self, path: Path, directory: bool) -> None:
@@ -236,6 +245,21 @@ def _is_safe_cache_key(key: str) -> bool:
 def _stable_payload_sha256(value: dict[str, Any]) -> str:
     payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _stable_envelope_hmac_sha256(secret: str, envelope: dict[str, Any]) -> str:
+    signed_payload = {
+        "cache_version": envelope.get("cache_version"),
+        "created_at": envelope.get("created_at"),
+        "expires_at": envelope.get("expires_at"),
+        "key": envelope.get("key"),
+        "namespace": envelope.get("namespace"),
+        "payload": envelope.get("payload"),
+        "payload_sha256": envelope.get("payload_sha256"),
+        "updated_at": envelope.get("updated_at"),
+    }
+    payload = json.dumps(signed_payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hmac.new(secret.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
 def _now_iso() -> str:

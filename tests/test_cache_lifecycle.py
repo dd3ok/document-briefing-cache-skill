@@ -1,5 +1,6 @@
 import json
 import os
+import hashlib
 import tempfile
 from pathlib import Path
 
@@ -143,6 +144,42 @@ def test_json_cache_rejects_envelope_key_namespace_and_digest_mismatch(tmp_path)
     envelope["payload"]["value"] = 2
     path.write_text(json.dumps(envelope), encoding="utf-8")
     assert cache.get_json_with_status("safe").status == "corrupt"
+
+
+def test_json_cache_hmac_rejects_tampering_even_when_digest_is_updated(tmp_path):
+    cache = JsonFileCache(tmp_path, "document_summaries", hmac_secret="secret")
+    cache.set_json("safe", {"value": 1})
+    path = cache.path_for("safe")
+    envelope = json.loads(path.read_text(encoding="utf-8"))
+
+    envelope["payload"]["value"] = 2
+    envelope["payload_sha256"] = hashlib.sha256(
+        json.dumps(envelope["payload"], ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    path.write_text(json.dumps(envelope), encoding="utf-8")
+
+    assert cache.get_json_with_status("safe").status == "corrupt"
+
+
+def test_json_cache_hmac_requires_signed_entries(tmp_path):
+    unsigned_cache = JsonFileCache(tmp_path, "document_summaries")
+    unsigned_cache.set_json("legacy", {"value": 1})
+
+    signed_cache = JsonFileCache(tmp_path, "document_summaries", hmac_secret="secret")
+
+    assert signed_cache.get_json_with_status("legacy").status == "corrupt"
+
+
+def test_json_cache_hmac_rejects_expires_at_tampering(tmp_path):
+    cache = JsonFileCache(tmp_path, "document_summaries", hmac_secret="secret")
+    cache.set_json("signed-expiry", {"value": 1}, ttl_seconds=-1)
+    path = cache.path_for("signed-expiry")
+    envelope = json.loads(path.read_text(encoding="utf-8"))
+
+    envelope["expires_at"] = None
+    path.write_text(json.dumps(envelope), encoding="utf-8")
+
+    assert cache.get_json_with_status("signed-expiry").status == "corrupt"
 
 
 def test_json_cache_hashes_unsafe_keys_without_collision(tmp_path):

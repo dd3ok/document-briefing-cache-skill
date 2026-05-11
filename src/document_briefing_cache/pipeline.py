@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from .cache import JsonFileCache, merge_operation_results
@@ -12,6 +13,7 @@ from .hashing import (
 )
 from .models import CacheConfig, DocumentInput, DocumentSummaryState, PipelineResult, PipelineStats
 from .normalize import split_into_sections
+from .privacy import redact_document_input, redaction_policy_id
 from .render import TEMPLATE_VERSION, render_briefing
 from .summarizers import BaseSummarizer, RuleBasedExtractiveSummarizer
 
@@ -38,8 +40,9 @@ class BriefingPipeline:
         self.summarizer = summarizer or RuleBasedExtractiveSummarizer()
         self.template_dir = template_dir
         self.skill_version = skill_version
-        self.document_cache = JsonFileCache(self.cache_dir, "document_summaries")
-        self.output_cache = JsonFileCache(self.cache_dir, "rendered_outputs")
+        hmac_secret = self._cache_hmac_secret()
+        self.document_cache = JsonFileCache(self.cache_dir, "document_summaries", hmac_secret=hmac_secret)
+        self.output_cache = JsonFileCache(self.cache_dir, "rendered_outputs", hmac_secret=hmac_secret)
 
     def run(
         self,
@@ -58,6 +61,7 @@ class BriefingPipeline:
         effective_output_cache = self.cache_config.output_cache if use_output_cache is None else use_output_cache
         can_read = self.cache_config.policy not in {"bypass", "refresh", "ephemeral"}
         can_write = self.cache_config.policy not in {"bypass", "read_only", "ephemeral"}
+        privacy_profile = redaction_policy_id(self.cache_config.redact_pii)
 
         out_key = output_cache_key(
             documents,
@@ -67,6 +71,7 @@ class BriefingPipeline:
             skill_version=self.skill_version,
             template_version=TEMPLATE_VERSION,
             summarizer_id=self.summarizer.summarizer_id,
+            redaction_policy_id=privacy_profile,
         )
         stats.cache_keys["output"] = out_key
 
@@ -83,19 +88,24 @@ class BriefingPipeline:
             has_validation_errors = False
             for document in documents:
                 fingerprint = document_content_fingerprint(document)
+                summary_document = document
+                if self.cache_config.redact_pii:
+                    summary_document, redaction_count = redact_document_input(document)
+                    stats.pii_redactions += redaction_count
                 summary_key = document_summary_cache_key(
                     document,
                     fingerprint=fingerprint,
                     summarizer_id=self.summarizer.summarizer_id,
                     skill_version=self.skill_version,
+                    redaction_policy_id=privacy_profile,
                 )
-                stats.cache_keys[f"document:{document.document_id or document.source or fingerprint[:8]}"] = summary_key
+                stats.cache_keys[f"document:{fingerprint[:12]}"] = summary_key
                 cached: DocumentSummaryState | None = None
                 status = "miss"
                 if self.cache_config.document_cache and can_read:
                     cached, status = self.document_cache.get_model_with_status(summary_key, DocumentSummaryState, update_accessed=can_write)
                 if cached is not None:
-                    if not self._cached_summary_matches(document, cached, fingerprint):
+                    if not self._cached_summary_matches(summary_document, cached, fingerprint):
                         stats.document_cache_corrupt += 1
                         cached = None
                     else:
@@ -108,12 +118,12 @@ class BriefingPipeline:
                     stats.document_cache_expired += 1
 
                 stats.document_cache_misses += 1
-                sections = split_into_sections(document.text or "")
-                summary = self.summarizer.summarize(document, sections, fingerprint)
+                sections = split_into_sections(summary_document.text or "")
+                summary = self.summarizer.summarize(summary_document, sections, fingerprint)
                 stats.summarizer_calls += 1
                 validation_errors = []
                 if self.cache_config.validate_evidence:
-                    validation_errors = validate_summary_evidence(summary, document.text or "", sections=sections, raw=document.raw)
+                    validation_errors = validate_summary_evidence(summary, summary_document.text or "", sections=sections, raw=summary_document.raw)
                     stats.evidence_validation_errors += len(validation_errors)
                     if validation_errors:
                         has_validation_errors = True
@@ -173,6 +183,14 @@ class BriefingPipeline:
         if self.cache_config.policy == "persistent":
             return None
         return self.cache_config.output_ttl_seconds
+
+    def _cache_hmac_secret(self) -> str | None:
+        if not self.cache_config.cache_hmac_secret_env:
+            return None
+        secret = os.getenv(self.cache_config.cache_hmac_secret_env)
+        if not secret:
+            raise RuntimeError(f"Cache HMAC secret environment variable is not set: {self.cache_config.cache_hmac_secret_env}")
+        return secret
 
     def _cached_summary_matches(self, document: DocumentInput, summary: DocumentSummaryState, fingerprint: str) -> bool:
         return (

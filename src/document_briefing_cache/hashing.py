@@ -51,12 +51,14 @@ def document_summary_cache_key(
     summarizer_id: str,
     skill_version: str,
     schema_version: str = "1.0.0",
+    redaction_policy_id: str = "none",
 ) -> str:
     payload = {
         "type": "document_summary",
         "schema_version": schema_version,
         "skill_version": skill_version,
         "summarizer_id": summarizer_id,
+        "redaction_policy_id": redaction_policy_id,
         "fingerprint": fingerprint,
         "document_id": stable_document_id(document, fingerprint),
     }
@@ -71,6 +73,7 @@ def output_cache_key(
     skill_version: str,
     template_version: str,
     summarizer_id: str,
+    redaction_policy_id: str = "none",
 ) -> str:
     item_payload = []
     for item in summaries_or_documents:
@@ -98,6 +101,7 @@ def output_cache_key(
         "skill_version": skill_version,
         "template_version": template_version,
         "summarizer_id": summarizer_id,
+        "redaction_policy_id": redaction_policy_id,
         "items": item_payload,
     }
     return sha256_text(stable_json(payload))

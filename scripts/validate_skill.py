@@ -25,6 +25,7 @@ REQUIRED_FILES = [
     "examples/mixed_documents.json",
     "evals/briefing_eval_cases.json",
     "evals/trigger_eval_cases.json",
+    "evals/model_invocation_benchmark_cases.json",
     "agents/openai.yaml",
 ]
 
@@ -78,6 +79,8 @@ def main(argv: list[str] | None = None) -> int:
     errors.extend(eval_errors)
     trigger_eval_payload, trigger_eval_errors = validate_trigger_eval_cases(ROOT / "evals" / "trigger_eval_cases.json")
     errors.extend(trigger_eval_errors)
+    invocation_payload, invocation_errors = validate_model_invocation_benchmark_cases(ROOT / "evals" / "model_invocation_benchmark_cases.json")
+    errors.extend(invocation_errors)
     if args.run_evals and eval_payload is not None:
         errors.extend(run_eval_cases(eval_payload))
     if args.run_evals and trigger_eval_payload is not None:
@@ -90,7 +93,8 @@ def main(argv: list[str] | None = None) -> int:
     print(
         "OK: document briefing cache skill repository validated "
         f"({len(tests)} test files, {len((eval_payload or {}).get('cases', []))} eval cases, "
-        f"{len((trigger_eval_payload or {}).get('cases', []))} trigger cases)"
+        f"{len((trigger_eval_payload or {}).get('cases', []))} trigger cases, "
+        f"{len((invocation_payload or {}).get('cases', []))} model benchmark cases)"
     )
     return 0
 
@@ -114,8 +118,8 @@ def validate_eval_cases(path: Path) -> tuple[dict | None, list[str]]:
     except json.JSONDecodeError as exc:
         return None, [f"Eval fixture is not valid JSON: {exc}"]
     cases = payload.get("cases")
-    if not isinstance(cases, list) or len(cases) < 3:
-        return payload, ["Eval fixture should contain at least three cases."]
+    if not isinstance(cases, list) or len(cases) < 5:
+        return payload, ["Eval fixture should contain at least five cases."]
     errors = []
     for idx, case in enumerate(cases):
         prefix = f"Eval case {idx}"
@@ -144,6 +148,9 @@ def validate_eval_cases(path: Path) -> tuple[dict | None, list[str]]:
                 errors.append(f"{run_prefix} missing expect.stats.summarizer_calls.")
             if "document_cache_hits" not in stats:
                 errors.append(f"{run_prefix} missing expect.stats.document_cache_hits.")
+            state_expect = expected.get("summary_state", {})
+            if state_expect and not isinstance(state_expect, dict):
+                errors.append(f"{run_prefix} expect.summary_state should be an object.")
     return payload, errors
 
 
@@ -229,6 +236,44 @@ def validate_openai_yaml(path: Path) -> list[str]:
     return errors
 
 
+def validate_model_invocation_benchmark_cases(path: Path) -> tuple[dict | None, list[str]]:
+    if not path.exists():
+        return None, [f"Missing model invocation benchmark fixture: {path.relative_to(ROOT)}"]
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return None, [f"Model invocation benchmark fixture is not valid JSON: {exc}"]
+    cases = payload.get("cases")
+    if not isinstance(cases, list) or len(cases) < 4:
+        return payload, ["Model invocation benchmark fixture should contain at least four cases."]
+    errors = []
+    has_positive = False
+    has_negative = False
+    for idx, case in enumerate(cases):
+        prefix = f"Model invocation benchmark case {idx}"
+        if not isinstance(case, dict):
+            errors.append(f"{prefix} should be an object.")
+            continue
+        if not case.get("id"):
+            errors.append(f"{prefix} missing id.")
+        if not case.get("prompt"):
+            errors.append(f"{prefix} missing prompt.")
+        if not isinstance(case.get("expected_invocation"), bool):
+            errors.append(f"{prefix} missing boolean expected_invocation.")
+            continue
+        has_positive = has_positive or case["expected_invocation"]
+        has_negative = has_negative or not case["expected_invocation"]
+        if "observed_invocation" not in case:
+            errors.append(f"{prefix} missing observed_invocation.")
+        if "host" not in case or "model" not in case or "date" not in case or "notes" not in case:
+            errors.append(f"{prefix} must include host, model, date, and notes fields.")
+    if not has_positive:
+        errors.append("Model invocation benchmark fixture must include positive expected cases.")
+    if not has_negative:
+        errors.append("Model invocation benchmark fixture must include negative expected cases.")
+    return payload, errors
+
+
 def run_eval_cases(payload: dict) -> list[str]:
     from document_briefing_cache.models import CacheConfig, DocumentInput
     from document_briefing_cache.pipeline import BriefingPipeline
@@ -237,8 +282,16 @@ def run_eval_cases(payload: dict) -> list[str]:
     with tempfile.TemporaryDirectory(prefix="dbc-evals-") as cache_dir:
         for case in payload.get("cases", []):
             documents = [DocumentInput.model_validate(document) for document in case.get("input", {}).get("documents", [])]
-            policy = case.get("input", {}).get("cache_policy", "read_write")
-            pipeline = BriefingPipeline(cache_config=CacheConfig(cache_dir=cache_dir, policy=policy, output_cache=True))
+            input_config = case.get("input", {})
+            policy = input_config.get("cache_policy", "read_write")
+            pipeline = BriefingPipeline(
+                cache_config=CacheConfig(
+                    cache_dir=cache_dir,
+                    policy=policy,
+                    output_cache=True,
+                    redact_pii=bool(input_config.get("redact_pii", False)),
+                )
+            )
             for run in case.get("runs", []):
                 if run.get("mode") == "none":
                     continue
@@ -254,7 +307,57 @@ def run_eval_cases(payload: dict) -> list[str]:
                 for needle in expect.get("not_contains", []):
                     if needle in result.output:
                         errors.append(f"{case['id']}:{run['id']} output unexpectedly contained {needle!r}")
+                errors.extend(validate_summary_state_expectations(case["id"], run["id"], result.summaries, expect.get("summary_state", {})))
     return errors
+
+
+def validate_summary_state_expectations(case_id: str, run_id: str, summaries, expectations: dict) -> list[str]:
+    if not expectations:
+        return []
+    fields = collect_summary_state_fields(summaries)
+    errors = []
+    for field, needles in expectations.items():
+        if field not in fields:
+            errors.append(f"{case_id}:{run_id} has unsupported summary_state expectation {field!r}")
+            continue
+        haystack = "\n".join(fields[field])
+        for needle in needles:
+            if needle not in haystack:
+                errors.append(f"{case_id}:{run_id} summary_state.{field} missing {needle!r}")
+    return errors
+
+
+def collect_summary_state_fields(summaries) -> dict[str, list[str]]:
+    actions = []
+    risks = []
+    metrics = []
+    unknowns = []
+    evidence = []
+    entities = []
+    for summary in summaries:
+        entities.extend(summary.entities)
+        unknowns.extend(summary.unknowns)
+        for action in summary.actions:
+            actions.extend([action.action, action.owner or "", action.due or ""])
+            evidence.extend(ref.quote or "" for ref in action.evidence)
+        for risk in summary.risks:
+            risks.extend([risk.title, risk.reason or "", risk.severity])
+            evidence.extend(ref.quote or "" for ref in risk.evidence)
+        for metric in summary.metrics:
+            metrics.extend([metric.name or "", metric.value, metric.unit or ""])
+            evidence.extend(ref.quote or "" for ref in metric.evidence)
+        for point in summary.key_points:
+            evidence.extend(ref.quote or "" for ref in point.evidence)
+        for decision in summary.decisions:
+            evidence.extend(ref.quote or "" for ref in decision.evidence)
+    return {
+        "actions_contains": actions,
+        "risks_contains": risks,
+        "metrics_contains": metrics,
+        "unknowns_contains": unknowns,
+        "evidence_contains": evidence,
+        "entities_contains": entities,
+    }
 
 
 def run_trigger_eval_cases(payload: dict) -> list[str]:

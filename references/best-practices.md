@@ -46,15 +46,22 @@ Create a small evaluation set from actual documents and track:
 - number/date preservation,
 - action extraction accuracy,
 - risk extraction accuracy,
+- structured-state assertions for actions, risks, metrics, evidence, and unknowns,
 - cache hit rate,
 - LLM call count,
 - output usability.
 
 Static trigger evals should cover intended trigger and near-miss boundary cases. Treat them as metadata fixtures, not as proof of actual model-side skill invocation behavior.
 
+Keep a separate manual benchmark worksheet for actual model-side invocation behavior. Record host, model, date, observed invocation, and notes because routing behavior is provider- and version-specific.
+
 ## 9. Treat cache as sensitive
 
 Document summaries can contain evidence quotes, names, IDs, dates, metrics, sources, and rendered outputs. Prefer private cache permissions, short output-cache TTLs, and `ephemeral` mode for sensitive documents.
+
+Use `--redact-pii` when basic contact information should not reach LLM cache-miss calls or local cache files. Redaction is a profile, so include its policy id in document and output cache keys.
+
+Use HMAC-signed cache envelopes when local tamper detection matters. Sign the payload and security-relevant metadata such as namespace, key, cache version, payload digest, and expiry. HMAC is not encryption; cache files remain plaintext unless the deployment provides encrypted storage, tmpfs, or another encrypted backend.
 
 ## 10. Render untrusted fields safely
 

@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0.0",
+  "description": "Manual model-side skill invocation benchmark cases. Fill observed fields only after running in a host that exposes skill invocation telemetry.",
+  "manual": true,
+  "cases": [
+    {
+      "id": "positive-meeting-rerender",
+      "prompt": "이 회의록을 요약하고 같은 내용을 action_items 형식으로 다시 렌더링해줘.",
+      "expected_invocation": true,
+      "observed_invocation": null,
+      "host": null,
+      "model": null,
+      "date": null,
+      "notes": "Expected to invoke because the user supplies document-like content and asks for reusable briefing/rerendering."
+    },
+    {
+      "id": "positive-json-digest",
+      "prompt": "이 JSON payload를 임원용 digest로 만들고, 다음 요청에서 재사용할 수 있게 캐시해줘.",
+      "expected_invocation": true,
+      "observed_invocation": null,
+      "host": null,
+      "model": null,
+      "date": null,
+      "notes": "Expected to invoke because the user asks for cached structured briefing from supplied JSON."
+    },
+    {
+      "id": "negative-live-news",
+      "prompt": "오늘 최신 금융 뉴스를 찾아서 분석해줘.",
+      "expected_invocation": false,
+      "observed_invocation": null,
+      "host": null,
+      "model": null,
+      "date": null,
+      "notes": "Expected not to invoke because this is live research/current-fact lookup."
+    },
+    {
+      "id": "negative-source-debugging",
+      "prompt": "이 Python stack trace를 보고 버그 원인을 찾아 고쳐줘.",
+      "expected_invocation": false,
+      "observed_invocation": null,
+      "host": null,
+      "model": null,
+      "date": null,
+      "notes": "Expected not to invoke because source-code debugging is outside the skill boundary."
+    }
+  ]
+}
