@@ -1,5 +1,8 @@
 # Cache Lifecycle And Evidence Implementation Plan
 
+> Status: Implemented / historical plan. Do not execute this as a current RED/GREEN checklist.
+> Completion evidence: `src/document_briefing_cache/evidence.py`, `tests/test_evidence.py`, `tests/test_cache_lifecycle.py`, `tests/test_pipeline_cache.py`, and `tests/test_cli_cache.py`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a practical cache lifecycle layer and evidence validation gate so cached document summaries can be retained, expired, or deleted safely.

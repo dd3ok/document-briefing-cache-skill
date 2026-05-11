@@ -22,3 +22,42 @@ def test_debug_template_shows_cache_stats(tmp_path):
     result = BriefingPipeline(cache_dir=tmp_path).run(docs, mode="debug", use_output_cache=False)
     assert "Cache Stats" in result.output
     assert "summarizer_calls" in result.output
+
+
+def test_rendering_escapes_untrusted_markdown_html(tmp_path):
+    docs = [
+        DocumentInput(
+            document_id="x",
+            title="<script>alert('x')</script>",
+            source="https://example.com/<bad>",
+            text="Action: <img src=x onerror=alert(1)> Owner: Backend.",
+        )
+    ]
+
+    result = BriefingPipeline(cache_dir=tmp_path).run(docs, mode="brief", use_output_cache=False)
+
+    assert "<script>" not in result.output
+    assert "<img" not in result.output
+    assert "&lt;script&gt;" in result.output
+    assert "&lt;img" in result.output
+
+
+def test_rendering_escapes_inline_markdown_metacharacters(tmp_path):
+    docs = [
+        DocumentInput(
+            document_id="x",
+            title="*Launch* _Plan_ ~~Draft~~",
+            text="Action: [click](https://evil.example) and ![track](https://evil.example/pixel.png).",
+        )
+    ]
+
+    result = BriefingPipeline(cache_dir=tmp_path).run(docs, mode="brief", use_output_cache=False)
+
+    assert "*Launch*" not in result.output
+    assert "_Plan_" not in result.output
+    assert "~~Draft~~" not in result.output
+    assert "[click](https://evil.example)" not in result.output
+    assert "![track](https://evil.example/pixel.png)" not in result.output
+    assert r"\*Launch\*" in result.output
+    assert r"\_Plan\_" in result.output
+    assert r"\~\~Draft\~\~" in result.output

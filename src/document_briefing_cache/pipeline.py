@@ -8,6 +8,7 @@ from .hashing import (
     document_content_fingerprint,
     document_summary_cache_key,
     output_cache_key,
+    stable_document_id,
 )
 from .models import CacheConfig, DocumentInput, DocumentSummaryState, PipelineResult, PipelineStats
 from .normalize import split_into_sections
@@ -94,9 +95,15 @@ class BriefingPipeline:
                 if self.cache_config.document_cache and can_read:
                     cached, status = self.document_cache.get_model_with_status(summary_key, DocumentSummaryState, update_accessed=can_write)
                 if cached is not None:
-                    stats.document_cache_hits += 1
-                    summaries.append(cached)
-                    continue
+                    if not self._cached_summary_matches(document, cached, fingerprint):
+                        stats.document_cache_corrupt += 1
+                        cached = None
+                    else:
+                        stats.document_cache_hits += 1
+                        summaries.append(cached)
+                        continue
+                if status == "corrupt":
+                    stats.document_cache_corrupt += 1
                 if status == "expired":
                     stats.document_cache_expired += 1
 
@@ -166,3 +173,11 @@ class BriefingPipeline:
         if self.cache_config.policy == "persistent":
             return None
         return self.cache_config.output_ttl_seconds
+
+    def _cached_summary_matches(self, document: DocumentInput, summary: DocumentSummaryState, fingerprint: str) -> bool:
+        return (
+            summary.schema_version == "1.0.0"
+            and summary.document_id == stable_document_id(document, fingerprint)
+            and summary.content_fingerprint == fingerprint
+            and summary.summarizer_id == self.summarizer.summarizer_id
+        )

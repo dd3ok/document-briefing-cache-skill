@@ -1,19 +1,19 @@
 # Executive Brief
 
 {% for item in summaries[:5] %}
-## {{ item.title or item.document_id }}
-{{ item.summary }}
+## {{ (item.title or item.document_id)|md }}
+{{ item.summary|md }}
 {% if item.risks %}
-- 리스크: {{ item.risks[0].title }}
+- 리스크: {{ item.risks[0].title|md }}
 {% endif %}
 {% if item.actions %}
-- 다음 액션: {{ item.actions[0].action }}{% if item.actions[0].due %} / 기한: {{ item.actions[0].due }}{% endif %}
+- 다음 액션: {{ item.actions[0].action|md }}{% if item.actions[0].due %} / 기한: {{ item.actions[0].due|md }}{% endif %}
 {% endif %}
 {% endfor %}
 
 {% if all_actions %}
 ## Immediate Actions
 {% for action in all_actions[:5] %}
-- {{ action.action }}{% if action.owner %} / {{ action.owner }}{% endif %}
+- {{ action.action|md }}{% if action.owner %} / {{ action.owner|md }}{% endif %}
 {% endfor %}
 {% endif %}

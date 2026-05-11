@@ -5,6 +5,8 @@ from document_briefing_cache.models import (
     DocumentSummaryState,
     EvidenceRef,
     Metric,
+    Risk,
+    SectionDigest,
 )
 
 
@@ -136,3 +138,42 @@ def test_validate_summary_rejects_hallucinated_plain_numbers_and_names():
 
     assert any("Lee Sora" in error for error in errors)
     assert any("43" in error for error in errors)
+
+
+def test_validate_summary_rejects_missing_evidence_quote_for_claims():
+    source = "Payment API error rate reached 2.4%."
+    summary = DocumentSummaryState(
+        document_id="incident",
+        content_fingerprint="abc",
+        metrics=[
+            Metric(
+                name="payment_error_rate",
+                value="2.4",
+                unit="%",
+                evidence=[EvidenceRef(document_id="incident", section_id=None, quote=None)],
+            )
+        ],
+    )
+
+    errors = validate_summary_evidence(summary, source)
+
+    assert any("evidence quote is required" in error for error in errors)
+
+
+def test_validate_summary_checks_owner_risk_reason_questions_and_section_digest():
+    source = "Kim Minji owns the rollout. Risk: delay by 2026-05-07. Section one says 12 services are affected."
+    summary = DocumentSummaryState(
+        document_id="incident",
+        content_fingerprint="abc",
+        actions=[ActionItem(action="Rollout follow-up.", owner="Lee Sora")],
+        risks=[Risk(title="Delay risk", reason="May slip until 2026-05-08")],
+        open_questions=["Can Park Joon approve 13 services?"],
+        sections_digest=[SectionDigest(section_id="s1", summary="13 services affected.")],
+    )
+
+    errors = validate_summary_evidence(summary, source)
+
+    assert any("Lee Sora" in error for error in errors)
+    assert any("2026-05-08" in error for error in errors)
+    assert any("Park Joon" in error for error in errors)
+    assert any("13" in error for error in errors)

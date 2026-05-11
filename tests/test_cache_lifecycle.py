@@ -1,4 +1,12 @@
+import json
+import os
+import tempfile
+from pathlib import Path
+
+import pytest
+
 from document_briefing_cache.cache import JsonFileCache
+from document_briefing_cache.hashing import document_content_fingerprint, document_summary_cache_key
 from document_briefing_cache.models import CacheConfig, DocumentInput, DocumentSummaryState, EvidenceRef, Metric
 from document_briefing_cache.pipeline import BriefingPipeline
 from document_briefing_cache.summarizers import RuleBasedExtractiveSummarizer
@@ -104,3 +112,73 @@ def test_cache_clear_removes_namespace(tmp_path):
 
     assert result.entries_deleted == 1
     assert cache.get_text_with_status("out").status == "miss"
+
+
+def test_json_cache_uses_private_directory_and_file_permissions():
+    with tempfile.TemporaryDirectory(dir="/tmp") as tmp_dir:
+        tmp_path = Path(tmp_dir)
+        cache = JsonFileCache(tmp_path, "document_summaries")
+        cache.set_json("private", {"value": 1})
+
+        cache_file = cache.path_for("private")
+
+        if os.name == "posix":
+            if (cache.root.stat().st_mode & 0o777) != 0o700:
+                pytest.skip("filesystem does not honor POSIX chmod")
+            assert (cache_file.stat().st_mode & 0o777) == 0o600
+
+
+def test_json_cache_rejects_envelope_key_namespace_and_digest_mismatch(tmp_path):
+    cache = JsonFileCache(tmp_path, "document_summaries")
+    cache.set_json("safe", {"value": 1})
+    path = cache.path_for("safe")
+    envelope = json.loads(path.read_text(encoding="utf-8"))
+
+    envelope["key"] = "other"
+    path.write_text(json.dumps(envelope), encoding="utf-8")
+    assert cache.get_json_with_status("safe").status == "corrupt"
+
+    cache.set_json("safe", {"value": 1})
+    envelope = json.loads(path.read_text(encoding="utf-8"))
+    envelope["payload"]["value"] = 2
+    path.write_text(json.dumps(envelope), encoding="utf-8")
+    assert cache.get_json_with_status("safe").status == "corrupt"
+
+
+def test_json_cache_hashes_unsafe_keys_without_collision(tmp_path):
+    cache = JsonFileCache(tmp_path, "rendered_outputs")
+
+    left = cache.path_for("a/b")
+    right = cache.path_for("ab")
+
+    assert left.name.startswith("sha256-")
+    assert left != right
+
+
+def test_pipeline_ignores_cached_summary_with_wrong_contract(tmp_path):
+    docs = [DocumentInput(document_id="x", title="X", text="Decision: proceed.")]
+    config = CacheConfig(cache_dir=str(tmp_path), output_cache=False)
+    summarizer = CountingSummarizer()
+    pipeline = BriefingPipeline(cache_config=config, summarizer=summarizer)
+    real_fingerprint = document_content_fingerprint(docs[0])
+
+    fingerprint = "not-the-real-fingerprint"
+    bad_summary = DocumentSummaryState(
+        document_id="x",
+        content_fingerprint=fingerprint,
+        summary="Tampered cached summary.",
+        summarizer_id="wrong-summarizer",
+    )
+    summary_key = document_summary_cache_key(
+        docs[0],
+        fingerprint=real_fingerprint,
+        summarizer_id=summarizer.summarizer_id,
+        skill_version=pipeline.skill_version,
+    )
+    pipeline.document_cache.set_model(summary_key, bad_summary)
+
+    result = BriefingPipeline(cache_config=config, summarizer=summarizer).run(docs)
+
+    assert summarizer.calls == 1
+    assert result.stats.document_cache_corrupt == 1
+    assert "Tampered cached summary" not in result.output

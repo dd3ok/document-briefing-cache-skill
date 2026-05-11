@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import json
 import os
+import hashlib
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Literal, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -33,12 +34,12 @@ class JsonFileCache:
     def __init__(self, cache_dir: str | Path, namespace: str):
         self.root = Path(cache_dir) / namespace
         self.root.mkdir(parents=True, exist_ok=True)
+        self._harden_permissions(self.root, directory=True)
         self.namespace = namespace
         self._created_paths: set[Path] = set()
 
     def path_for(self, key: str) -> Path:
-        safe = "".join(ch for ch in key if ch.isalnum() or ch in "-_")
-        return self.root / f"{safe}.json"
+        return self.root / f"{normalize_cache_key(key)}.json"
 
     def get_json(self, key: str) -> dict[str, Any] | None:
         result = self.get_json_with_status(key)
@@ -50,6 +51,8 @@ class JsonFileCache:
             return CacheReadResult(status="miss")
         entry = self._read_entry(path)
         if entry is None:
+            return CacheReadResult(status="corrupt")
+        if not self._valid_envelope(entry, key):
             return CacheReadResult(status="corrupt")
         if self._is_expired(entry):
             return CacheReadResult(status="expired")
@@ -72,6 +75,7 @@ class JsonFileCache:
             "expires_at": _expires_at_iso(ttl_seconds),
             "payload": value,
         }
+        envelope["payload_sha256"] = _stable_payload_sha256(value)
         self._write_entry(path, envelope)
         self._created_paths.add(path)
 
@@ -85,7 +89,10 @@ class JsonFileCache:
         result = self.get_json_with_status(key, update_accessed=update_accessed)
         if result.status != "hit":
             return None, result.status
-        return model.model_validate(result.value), result.status
+        try:
+            return model.model_validate(result.value), result.status
+        except ValidationError:
+            return None, "corrupt"
 
     def set_model(self, key: str, value: BaseModel, ttl_seconds: int | None = None) -> None:
         self.set_json(key, value.model_dump(mode="json"), ttl_seconds=ttl_seconds)
@@ -161,9 +168,12 @@ class JsonFileCache:
 
     def _write_entry(self, path: Path, value: dict[str, Any]) -> None:
         tmp = path.with_name(f"{path.name}.{uuid.uuid4().hex}.tmp")
-        with tmp.open("w", encoding="utf-8") as f:
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(value, f, ensure_ascii=False, indent=2, sort_keys=True)
+        self._harden_permissions(tmp, directory=False)
         os.replace(tmp, path)
+        self._harden_permissions(path, directory=False)
 
     def _is_envelope(self, value: dict[str, Any]) -> bool:
         return value.get("cache_version") == "1.0" and "payload" in value
@@ -179,6 +189,27 @@ class JsonFileCache:
         except ValueError:
             return True
 
+    def _valid_envelope(self, value: dict[str, Any], expected_key: str) -> bool:
+        if not self._is_envelope(value):
+            return True
+        if value.get("namespace") != self.namespace or value.get("key") != expected_key:
+            return False
+        payload = value.get("payload")
+        if not isinstance(payload, dict):
+            return False
+        expected_digest = value.get("payload_sha256")
+        if expected_digest and expected_digest != _stable_payload_sha256(payload):
+            return False
+        return True
+
+    def _harden_permissions(self, path: Path, directory: bool) -> None:
+        if os.name != "posix":
+            return
+        try:
+            path.chmod(0o700 if directory else 0o600)
+        except OSError:
+            return
+
 
 def merge_operation_results(*results: CacheOperationResult) -> CacheOperationResult:
     merged = CacheOperationResult()
@@ -188,6 +219,23 @@ def merge_operation_results(*results: CacheOperationResult) -> CacheOperationRes
         merged.entries_scanned += result.entries_scanned
         merged.dry_run = merged.dry_run or result.dry_run
     return merged
+
+
+def normalize_cache_key(key: str) -> str:
+    if _is_safe_cache_key(key):
+        return key
+    return f"sha256-{hashlib.sha256(key.encode('utf-8')).hexdigest()}"
+
+
+def _is_safe_cache_key(key: str) -> bool:
+    if not 1 <= len(key) <= 128:
+        return False
+    return all(ch.isalnum() or ch in "-_" for ch in key)
+
+
+def _stable_payload_sha256(value: dict[str, Any]) -> str:
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def _now_iso() -> str:

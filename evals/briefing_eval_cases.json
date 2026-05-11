@@ -1,0 +1,141 @@
+{
+  "schema_version": "1.0.0",
+  "description": "Compact behavioral fixtures for document briefing cache triggers, reuse, and value preservation.",
+  "cases": [
+    {
+      "id": "meeting-cache-and-rerender",
+      "input": {
+        "documents": [
+          {
+            "document_id": "meeting-2026-05-07",
+            "title": "Payments launch meeting",
+            "doc_type": "meeting_notes",
+            "content_format": "markdown",
+            "text": "Decision: launch remains approved. Action: Backend should patch PAY-482 by 2026-05-10. Risk: gateway latency reached 183 ms."
+          }
+        ]
+      },
+      "runs": [
+        {
+          "id": "first-brief",
+          "prompt": "이 회의록을 요약하고 액션 아이템을 뽑아줘.",
+          "mode": "brief",
+          "use_output_cache": false,
+          "expect": {
+            "stats": {
+              "summarizer_calls": 1,
+              "document_cache_hits": 0,
+              "document_cache_misses": 1
+            },
+            "contains": ["PAY-482", "2026-05-10", "183 ms"],
+            "not_contains": ["PAY-483", "2026-05-11"]
+          }
+        },
+        {
+          "id": "rerender-action-items",
+          "prompt": "같은 문서를 action_items 형식으로 다시 렌더링해줘. 재요약은 하지 마.",
+          "mode": "action_items",
+          "use_output_cache": false,
+          "expect": {
+            "stats": {
+              "summarizer_calls": 0,
+              "document_cache_hits": 1,
+              "document_cache_misses": 0
+            },
+            "contains": ["PAY-482", "2026-05-10"],
+            "not_contains": ["PAY-483"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "api-payload-executive",
+      "input": {
+        "documents": [
+          {
+            "document_id": "api-payload-1",
+            "title": "Billing API payload",
+            "doc_type": "api_payload",
+            "content_format": "json",
+            "text": "{\"incident_id\":\"INC-2026-042\",\"error_rate\":\"2.4%\",\"owner\":\"Billing API\",\"action\":\"Rollback by 2026-05-12\"}",
+            "raw": {
+              "incident_id": "INC-2026-042",
+              "error_rate": "2.4%",
+              "owner": "Billing API",
+              "action": "Rollback by 2026-05-12"
+            }
+          }
+        ]
+      },
+      "runs": [
+        {
+          "id": "executive",
+          "prompt": "이 JSON payload를 임원용으로 요약해줘.",
+          "mode": "executive",
+          "use_output_cache": false,
+          "expect": {
+            "stats": {
+              "summarizer_calls": 1,
+              "document_cache_hits": 0,
+              "document_cache_misses": 1
+            },
+            "contains": ["INC-2026-042", "2.4%", "2026-05-12"],
+            "not_contains": ["2.5%", "2026-05-13"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "sensitive-ephemeral",
+      "input": {
+        "cache_policy": "ephemeral",
+        "documents": [
+          {
+            "document_id": "incident-private",
+            "title": "Private incident",
+            "doc_type": "log",
+            "content_format": "text",
+            "text": "Incident INC-2026-077 affected 12 users. Action: Security should review by 2026-05-12."
+          }
+        ]
+      },
+      "runs": [
+        {
+          "id": "brief",
+          "prompt": "민감 문서라 캐시하지 말고 이번 작업 후 지워줘.",
+          "mode": "brief",
+          "use_output_cache": true,
+          "expect": {
+            "stats": {
+              "summarizer_calls": 1,
+              "document_cache_hits": 0,
+              "document_cache_misses": 1
+            },
+            "contains": ["INC-2026-077", "2026-05-12"],
+            "not_contains": ["INC-2026-078"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "negative-trigger-fresh-fact-lookup",
+      "input": {
+        "documents": []
+      },
+      "runs": [
+        {
+          "id": "do-not-invoke",
+          "prompt": "오늘 최신 금융 뉴스를 찾아서 분석해줘.",
+          "mode": "none",
+          "expect": {
+            "should_invoke_skill": false,
+            "stats": {
+              "summarizer_calls": 0,
+              "document_cache_hits": 0
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

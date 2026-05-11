@@ -3,7 +3,7 @@
 {% if all_actions %}
 ## 해야 할 일
 {% for action in all_actions %}
-- {{ action.action }}{% if action.owner %} / 담당: {{ action.owner }}{% endif %}{% if action.due %} / 기한: {{ action.due }}{% endif %} / 상태: {{ action.status }}
+- {{ action.action|md }}{% if action.owner %} / 담당: {{ action.owner|md }}{% endif %}{% if action.due %} / 기한: {{ action.due|md }}{% endif %} / 상태: {{ action.status|md }}
 {% endfor %}
 {% else %}
 명시적으로 추출된 액션 아이템이 없습니다.
@@ -12,13 +12,13 @@
 {% if all_decisions %}
 ## 결정 사항
 {% for decision in all_decisions %}
-- {{ decision.text }}{% if decision.owner %} / 담당: {{ decision.owner }}{% endif %}
+- {{ decision.text|md }}{% if decision.owner %} / 담당: {{ decision.owner|md }}{% endif %}
 {% endfor %}
 {% endif %}
 
 {% if all_questions %}
 ## 확인 필요
 {% for question in all_questions %}
-- {{ question }}
+- {{ question|md }}
 {% endfor %}
 {% endif %}

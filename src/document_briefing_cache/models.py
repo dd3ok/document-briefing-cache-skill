@@ -145,6 +145,7 @@ class PipelineStats(BaseModel):
     document_cache_hits: int = 0
     document_cache_misses: int = 0
     document_cache_expired: int = 0
+    document_cache_corrupt: int = 0
     summarizer_calls: int = 0
     rendered_mode: str = "brief"
     cache_keys: dict[str, str] = Field(default_factory=dict)

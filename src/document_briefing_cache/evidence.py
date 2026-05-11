@@ -121,10 +121,17 @@ def _iter_claim_text(summary: DocumentSummaryState):
         yield "key point", point.text
     for decision in summary.decisions:
         yield "decision", decision.text
+        yield "decision owner", decision.owner or ""
     for action in summary.actions:
         yield "action", action.action
+        yield "action owner", action.owner or ""
     for risk in summary.risks:
         yield "risk", risk.title
+        yield "risk reason", risk.reason or ""
+    for question in summary.open_questions:
+        yield "open question", question
+    for digest in summary.sections_digest:
+        yield "section digest", digest.summary
 
 
 def _validate_evidence_ref(
@@ -136,6 +143,8 @@ def _validate_evidence_ref(
     errors: list[str] = []
     if evidence.document_id != document_id:
         errors.append(f"evidence document_id mismatch: {evidence.document_id}")
+    if not evidence.quote:
+        errors.append("evidence quote is required for source-backed claims")
     haystack = source_text
     if evidence.section_id:
         if evidence.section_id not in section_map:

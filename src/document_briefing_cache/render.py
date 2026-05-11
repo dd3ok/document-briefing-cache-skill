@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
+from markupsafe import escape
 
 from .models import DocumentSummaryState, PipelineStats
 
@@ -28,6 +30,7 @@ def render_briefing(
         lstrip_blocks=True,
         undefined=StrictUndefined,
     )
+    env.filters["md"] = markdown_inline_escape
     template_name = f"{mode}.md.j2"
     available = {p.name for p in template_dir.glob("*.md.j2")}
     if template_name not in available:
@@ -46,3 +49,12 @@ def render_briefing(
         all_decisions=[decision for summary in ordered for decision in summary.decisions],
         all_questions=[question for summary in ordered for question in summary.open_questions],
     ).strip() + "\n"
+
+
+def markdown_inline_escape(value: Any) -> str:
+    text = "" if value is None else str(value)
+    text = re.sub(r"\s+", " ", text).strip()
+    text = re.sub(r"^([#>*+\-=]|\d+\.)", r"\\\1", text)
+    for character in ("\\", "`", "*", "_", "~", "[", "]", "(", ")", "!"):
+        text = text.replace(character, f"\\{character}")
+    return str(escape(text))

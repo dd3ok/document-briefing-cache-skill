@@ -56,6 +56,7 @@ Only new document added → summarize only that document
 │   ├── models.py
 │   ├── hashing.py
 │   ├── cache.py
+│   ├── evidence.py
 │   ├── normalize.py
 │   ├── summarizers.py
 │   ├── render.py
@@ -74,24 +75,37 @@ Only new document added → summarize only that document
 │   └── best-practices.md
 ├── examples/
 │   └── mixed_documents.json
+├── evals/
+│   └── briefing_eval_cases.json
 ├── scripts/
 │   └── validate_skill.py
-└── tests/
+├── tests/
+└── docs/
 ```
 
 ## Install
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
+```
+
+Requires Python >=3.10. If your shell provides `python`, you can use it after the virtual environment is activated.
+
+Optional extras:
+
+```bash
+pip install -e ".[llm]"  # OpenAI-backed structured summarizer
+pip install -e ".[pdf]"  # PDF text extraction helpers
 ```
 
 ## Validate
 
 ```bash
-pytest -q
+python -m pytest -q
 python scripts/validate_skill.py
+python scripts/validate_skill.py --run-evals
 ```
 
 ## Run the sample
@@ -154,7 +168,9 @@ For sensitive documents:
 ```bash
 python -m document_briefing_cache.cli run \
   --input sensitive.json \
-  --cache-policy ephemeral
+  --cache-policy ephemeral \
+  --no-output-cache \
+  --delete-on-exit created
 ```
 
 Cache maintenance commands:
@@ -176,6 +192,8 @@ The default `rules` summarizer is intentionally deterministic and token-free. It
 - proving that template rerendering does not require an LLM.
 
 For high-quality summaries of new documents, connect an LLM summarizer at the cache-miss step. Keep the output structured as `DocumentSummaryState`.
+
+Privacy note: `rules` mode is local and token-free. LLM-backed summarizers send cache misses to the configured provider, such as OpenAI, and require the relevant API key. Cache directories may persist structured summaries, names, IDs, dates, metrics, evidence quotes, sources, and rendered outputs. Keep `.cache/` out of git and use `ephemeral` or explicit cache clearing for sensitive documents.
 
 ## Recommended production design
 

@@ -49,3 +49,11 @@ Create a small evaluation set from actual documents and track:
 - cache hit rate,
 - LLM call count,
 - output usability.
+
+## 9. Treat cache as sensitive
+
+Document summaries can contain evidence quotes, names, IDs, dates, metrics, sources, and rendered outputs. Prefer private cache permissions, short output-cache TTLs, and `ephemeral` mode for sensitive documents.
+
+## 10. Render untrusted fields safely
+
+Document titles, sources, summaries, actions, and risk text may contain raw HTML or Markdown injection. Escape model- and user-derived fields before rendering Markdown for downstream tools.

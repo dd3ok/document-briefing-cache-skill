@@ -11,13 +11,13 @@
 
 ## Documents
 {% for item in summaries %}
-### {{ item.document_id }}
-- fingerprint: {{ item.content_fingerprint }}
-- title: {{ item.title }}
-- type: {{ item.doc_type }}
-- format: {{ item.content_format }}
-- summarizer_id: {{ item.summarizer_id }}
-- summary: {{ item.summary }}
+### {{ item.document_id|md }}
+- fingerprint: {{ item.content_fingerprint|md }}
+- title: {{ item.title|md }}
+- type: {{ item.doc_type|md }}
+- format: {{ item.content_format|md }}
+- summarizer_id: {{ item.summarizer_id|md }}
+- summary: {{ item.summary|md }}
 - key_points: {{ item.key_points | length }}
 - actions: {{ item.actions | length }}
 - risks: {{ item.risks | length }}
