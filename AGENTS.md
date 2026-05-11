@@ -24,3 +24,5 @@ When a user asks to summarize, brief, digest, recap, or rerender documents:
 ## Safe default
 
 If an input type is unfamiliar, still normalize it to text plus metadata and mark uncertainties in `unknowns`.
+
+For sensitive documents, prefer `ephemeral`, no output cache, PII redaction, and optional HMAC signing. Treat HMAC as tamper detection only; cache files remain plaintext unless the deployment provides encrypted storage.

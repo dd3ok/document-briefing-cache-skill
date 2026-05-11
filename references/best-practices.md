@@ -63,6 +63,8 @@ Use `--redact-pii` when basic contact information should not reach LLM cache-mis
 
 Use HMAC-signed cache envelopes when local tamper detection matters. Sign the payload and security-relevant metadata such as namespace, key, cache version, payload digest, and expiry. HMAC is not encryption; cache files remain plaintext unless the deployment provides encrypted storage, tmpfs, or another encrypted backend.
 
+Pass the HMAC secret to cache maintenance commands that need to verify signed entries. Without the secret, maintenance should skip signed entries instead of pruning them as corrupt.
+
 ## 10. Render untrusted fields safely
 
 Document titles, sources, summaries, actions, and risk text may contain raw HTML or Markdown injection. Escape model- and user-derived fields before rendering Markdown for downstream tools.

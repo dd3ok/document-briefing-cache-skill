@@ -4,6 +4,7 @@ import pytest
 
 from document_briefing_cache.models import CacheConfig, DocumentInput
 from document_briefing_cache.pipeline import BriefingPipeline
+from document_briefing_cache.privacy import redact_document_input, redact_pii_text
 from document_briefing_cache.summarizers import RuleBasedExtractiveSummarizer
 
 
@@ -139,6 +140,55 @@ def test_redacted_document_identity_does_not_break_cache_hits(tmp_path):
     cached_text = "\n".join(path.read_text(encoding="utf-8") for path in tmp_path.rglob("*.json"))
     assert "alice@example.com" not in cached_text
     assert "010-1234-5678" not in cached_text
+
+
+def test_redacted_cache_keys_do_not_alias_different_raw_contacts(tmp_path):
+    docs = [
+        DocumentInput(document_id="same-ticket", title="A", text="Action: Support should email alice@example.com by 2026-05-12."),
+        DocumentInput(document_id="same-ticket", title="A", text="Action: Support should email bob@example.com by 2026-05-12."),
+    ]
+    config = CacheConfig(cache_dir=str(tmp_path), output_cache=False, redact_pii=True)
+
+    result = BriefingPipeline(cache_config=config).run(docs, use_output_cache=False)
+
+    assert result.stats.document_cache_misses == 2
+    assert len(list((tmp_path / "document_summaries").glob("*.json"))) == 2
+
+
+def test_redact_document_input_recurses_raw_and_metadata_without_mutating_original():
+    document = DocumentInput(
+        document_id="alice@example.com",
+        source="mailto:alice@example.com",
+        title="Customer follow-up",
+        text="Action: email alice@example.com by 2026-05-12.",
+        raw={"contact": {"email": "alice@example.com", "phone": "010-1234-5678"}},
+        metadata={"requester": "alice@example.com"},
+    )
+
+    redacted, count = redact_document_input(document)
+
+    assert count >= 5
+    assert redacted.document_id is None
+    assert redacted.source is None
+    redacted_payload = json.dumps(redacted.model_dump(mode="json"), ensure_ascii=False)
+    assert "alice@example.com" not in redacted_payload
+    assert "010-1234-5678" not in redacted_payload
+    original_payload = json.dumps(document.model_dump(mode="json"), ensure_ascii=False)
+    assert "alice@example.com" in original_payload
+
+
+def test_pii_redaction_preserves_non_pii_protected_values():
+    text = "Email bob@example.com, call +1 415-555-1212, keep INC-2026-091, 2026-05-12, 2.4%, and 183 ms."
+
+    redacted, count = redact_pii_text(text)
+
+    assert count == 2
+    assert "bob@example.com" not in redacted
+    assert "+1 415-555-1212" not in redacted
+    assert "INC-2026-091" in redacted
+    assert "2026-05-12" in redacted
+    assert "2.4%" in redacted
+    assert "183 ms" in redacted
 
 
 def test_pipeline_hmac_secret_env_missing_fails_closed(tmp_path, monkeypatch):

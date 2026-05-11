@@ -161,6 +161,32 @@ def test_json_cache_hmac_rejects_tampering_even_when_digest_is_updated(tmp_path)
     assert cache.get_json_with_status("safe").status == "corrupt"
 
 
+def test_json_cache_requires_payload_digest_for_v1_envelopes(tmp_path):
+    cache = JsonFileCache(tmp_path, "document_summaries")
+    cache.set_json("missing-digest", {"value": 1})
+    path = cache.path_for("missing-digest")
+    envelope = json.loads(path.read_text(encoding="utf-8"))
+
+    envelope.pop("payload_sha256")
+    path.write_text(json.dumps(envelope), encoding="utf-8")
+
+    assert cache.get_json_with_status("missing-digest").status == "corrupt"
+
+
+def test_json_cache_prune_removes_v1_envelopes_missing_payload_digest(tmp_path):
+    cache = JsonFileCache(tmp_path, "document_summaries")
+    cache.set_json("missing-digest", {"value": 1})
+    path = cache.path_for("missing-digest")
+    envelope = json.loads(path.read_text(encoding="utf-8"))
+    envelope.pop("payload_sha256")
+    path.write_text(json.dumps(envelope), encoding="utf-8")
+
+    result = cache.prune()
+
+    assert result.entries_deleted == 1
+    assert cache.get_json_with_status("missing-digest").status == "miss"
+
+
 def test_json_cache_hmac_requires_signed_entries(tmp_path):
     unsigned_cache = JsonFileCache(tmp_path, "document_summaries")
     unsigned_cache.set_json("legacy", {"value": 1})
@@ -168,6 +194,24 @@ def test_json_cache_hmac_requires_signed_entries(tmp_path):
     signed_cache = JsonFileCache(tmp_path, "document_summaries", hmac_secret="secret")
 
     assert signed_cache.get_json_with_status("legacy").status == "corrupt"
+
+
+def test_json_cache_hmac_signed_entry_fails_closed_without_secret(tmp_path):
+    signed_cache = JsonFileCache(tmp_path, "document_summaries", hmac_secret="secret")
+    signed_cache.set_json("signed", {"value": 1})
+
+    unsigned_reader = JsonFileCache(tmp_path, "document_summaries")
+
+    assert unsigned_reader.get_json_with_status("signed").status == "corrupt"
+
+
+def test_json_cache_hmac_rejects_wrong_secret(tmp_path):
+    signed_cache = JsonFileCache(tmp_path, "document_summaries", hmac_secret="secret-a")
+    signed_cache.set_json("signed", {"value": 1})
+
+    wrong_secret_reader = JsonFileCache(tmp_path, "document_summaries", hmac_secret="secret-b")
+
+    assert wrong_secret_reader.get_json_with_status("signed").status == "corrupt"
 
 
 def test_json_cache_hmac_rejects_expires_at_tampering(tmp_path):
@@ -180,6 +224,51 @@ def test_json_cache_hmac_rejects_expires_at_tampering(tmp_path):
     path.write_text(json.dumps(envelope), encoding="utf-8")
 
     assert cache.get_json_with_status("signed-expiry").status == "corrupt"
+
+
+def test_json_cache_hmac_rejects_cache_version_tampering(tmp_path):
+    cache = JsonFileCache(tmp_path, "document_summaries", hmac_secret="secret")
+    cache.set_json("signed-version", {"value": 1})
+    path = cache.path_for("signed-version")
+    envelope = json.loads(path.read_text(encoding="utf-8"))
+
+    envelope["cache_version"] = "0.9"
+    path.write_text(json.dumps(envelope), encoding="utf-8")
+
+    assert cache.get_json_with_status("signed-version").status == "corrupt"
+
+
+def test_json_cache_signed_entry_survives_last_accessed_updates(tmp_path):
+    cache = JsonFileCache(tmp_path, "document_summaries", hmac_secret="secret")
+    cache.set_json("signed", {"value": 1})
+
+    assert cache.get_json_with_status("signed").status == "hit"
+    assert cache.get_json_with_status("signed").status == "hit"
+
+
+def test_json_cache_prune_skips_signed_entries_without_secret(tmp_path):
+    signed_cache = JsonFileCache(tmp_path, "document_summaries", hmac_secret="secret")
+    signed_cache.set_json("signed", {"value": 1}, ttl_seconds=3600)
+
+    unsigned_reader = JsonFileCache(tmp_path, "document_summaries")
+    result = unsigned_reader.prune()
+
+    assert result.entries_deleted == 0
+    assert signed_cache.get_json_with_status("signed").status == "hit"
+
+
+def test_json_cache_prune_removes_invalid_signed_envelopes(tmp_path):
+    cache = JsonFileCache(tmp_path, "document_summaries", hmac_secret="secret")
+    cache.set_json("signed-expiry", {"value": 1}, ttl_seconds=3600)
+    path = cache.path_for("signed-expiry")
+    envelope = json.loads(path.read_text(encoding="utf-8"))
+    envelope["expires_at"] = None
+    path.write_text(json.dumps(envelope), encoding="utf-8")
+
+    result = cache.prune()
+
+    assert result.entries_deleted == 1
+    assert cache.get_json_with_status("signed-expiry").status == "miss"
 
 
 def test_json_cache_hashes_unsafe_keys_without_collision(tmp_path):

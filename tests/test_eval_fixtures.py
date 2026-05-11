@@ -1,5 +1,8 @@
 import json
+from copy import deepcopy
 from pathlib import Path
+
+from scripts.validate_skill import run_eval_cases
 
 
 def test_eval_fixture_cases_define_cache_and_trigger_expectations():
@@ -23,3 +26,27 @@ def test_eval_fixture_cases_define_cache_and_trigger_expectations():
                 has_state_expectation = True
                 assert isinstance(run["expect"]["summary_state"], dict)
     assert has_state_expectation
+
+
+def test_eval_runner_fails_when_summary_state_needle_is_missing():
+    path = Path("evals/briefing_eval_cases.json")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = {"cases": [deepcopy(payload["cases"][0])]}
+    payload["cases"][0]["runs"][0]["expect"]["summary_state"]["actions_contains"] = ["IMPOSSIBLE-ACTION-VALUE"]
+
+    errors = run_eval_cases(payload)
+
+    assert errors
+    assert "summary_state.actions_contains" in errors[0]
+
+
+def test_eval_runner_fails_on_unsupported_summary_state_expectation():
+    path = Path("evals/briefing_eval_cases.json")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = {"cases": [deepcopy(payload["cases"][0])]}
+    payload["cases"][0]["runs"][0]["expect"]["summary_state"] = {"unsupported_contains": ["PAY-482"]}
+
+    errors = run_eval_cases(payload)
+
+    assert errors
+    assert "unsupported summary_state expectation" in errors[0]

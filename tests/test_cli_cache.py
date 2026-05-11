@@ -1,5 +1,6 @@
 import json
 
+from document_briefing_cache.cache import JsonFileCache
 from document_briefing_cache.cli import main
 
 
@@ -70,3 +71,43 @@ def test_cli_run_supports_redaction_and_hmac_flags(tmp_path, capsys, monkeypatch
     assert "payload_hmac_sha256" in cache_text
     assert "alice@example.com" not in cache_text
     assert "010-1234-5678" not in cache_text
+
+
+def test_cli_cache_prune_does_not_delete_signed_entries_without_secret(tmp_path, capsys):
+    cache_dir = tmp_path / "cache"
+    JsonFileCache(cache_dir, "document_summaries", hmac_secret="secret").set_json("signed", {"value": 1}, ttl_seconds=3600)
+
+    assert main(["cache", "prune", "--cache-dir", str(cache_dir), "--json"]) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["entries_deleted"] == 0
+    assert list((cache_dir / "document_summaries").glob("*.json"))
+
+
+def test_cli_cache_prune_uses_hmac_secret_when_configured(tmp_path, capsys, monkeypatch):
+    monkeypatch.setenv("DBC_TEST_HMAC", "secret")
+    cache_dir = tmp_path / "cache"
+    cache = JsonFileCache(cache_dir, "document_summaries", hmac_secret="secret")
+    cache.set_json("signed", {"value": 1}, ttl_seconds=3600)
+    path = cache.path_for("signed")
+    envelope = json.loads(path.read_text(encoding="utf-8"))
+    envelope["expires_at"] = None
+    path.write_text(json.dumps(envelope), encoding="utf-8")
+
+    assert main(
+        [
+            "cache",
+            "prune",
+            "--cache-dir",
+            str(cache_dir),
+            "--layer",
+            "document_summaries",
+            "--cache-hmac-secret-env",
+            "DBC_TEST_HMAC",
+            "--json",
+        ]
+    ) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["entries_deleted"] == 1
+    assert list((cache_dir / "document_summaries").glob("*.json")) == []

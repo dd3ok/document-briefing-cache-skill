@@ -221,7 +221,7 @@ def validate_openai_yaml(path: Path) -> list[str]:
     text = path.read_text(encoding="utf-8")
     errors = []
     required_fragments = [
-        'version: "0.2.0"',
+        'version: "0.3.0"',
         "interface:",
         'display_name: "Document Briefing Cache"',
         'short_description: "Cached structured document briefings"',
@@ -243,10 +243,16 @@ def validate_model_invocation_benchmark_cases(path: Path) -> tuple[dict | None, 
         payload = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         return None, [f"Model invocation benchmark fixture is not valid JSON: {exc}"]
+    return payload, validate_model_invocation_benchmark_cases_from_payload(payload, path)
+
+
+def validate_model_invocation_benchmark_cases_from_payload(payload: dict, path: Path) -> list[str]:
+    errors = []
+    if payload.get("manual") is not True:
+        errors.append(f"{path.relative_to(ROOT)} must set manual=true because model invocation telemetry is host-specific.")
     cases = payload.get("cases")
     if not isinstance(cases, list) or len(cases) < 4:
-        return payload, ["Model invocation benchmark fixture should contain at least four cases."]
-    errors = []
+        return errors + ["Model invocation benchmark fixture should contain at least four cases."]
     has_positive = False
     has_negative = False
     for idx, case in enumerate(cases):
@@ -265,13 +271,17 @@ def validate_model_invocation_benchmark_cases(path: Path) -> tuple[dict | None, 
         has_negative = has_negative or not case["expected_invocation"]
         if "observed_invocation" not in case:
             errors.append(f"{prefix} missing observed_invocation.")
+        elif case.get("observed_invocation") is not None and (
+            not case.get("host") or not case.get("model") or not case.get("date")
+        ):
+            errors.append(f"{prefix} with observed_invocation must include host, model, and date.")
         if "host" not in case or "model" not in case or "date" not in case or "notes" not in case:
             errors.append(f"{prefix} must include host, model, date, and notes fields.")
     if not has_positive:
         errors.append("Model invocation benchmark fixture must include positive expected cases.")
     if not has_negative:
         errors.append("Model invocation benchmark fixture must include negative expected cases.")
-    return payload, errors
+    return errors
 
 
 def run_eval_cases(payload: dict) -> list[str]:

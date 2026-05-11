@@ -20,3 +20,12 @@ def test_readme_includes_claude_ai_description_variant_under_200_chars():
 
     assert description
     assert len(description) <= 200
+
+
+def test_agents_documents_sensitive_cache_defaults():
+    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+
+    assert "ephemeral" in agents
+    assert "no output cache" in agents
+    assert "PII redaction" in agents
+    assert "HMAC" in agents

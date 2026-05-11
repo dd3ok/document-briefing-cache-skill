@@ -19,7 +19,7 @@ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 scripts/validate_skill.py --run
 Observed result:
 
 ```text
-55 passed in 0.33s
+73 passed in 0.36s
 OK: document briefing cache skill repository validated (14 test files, 6 eval cases, 9 trigger cases, 4 model benchmark cases)
 OK: document briefing cache skill repository validated (14 test files, 6 eval cases, 9 trigger cases, 4 model benchmark cases)
 ```
@@ -58,8 +58,9 @@ Expected properties:
 - Repeated documents are served from document-level cache.
 - Re-rendering from another template does not trigger re-summarization.
 - Cached summaries are rejected when fingerprint, schema, document id, or summarizer id does not match.
-- Cache envelopes include payload digests and private POSIX permissions where the filesystem supports them.
-- HMAC-signed cache envelopes reject payload and expiry metadata tampering when configured.
+- Cache envelopes require payload digests and private POSIX permissions where the filesystem supports them.
+- HMAC-signed cache envelopes reject payload, cache-version, and expiry metadata tampering when configured.
+- Signed cache reads fail closed without the HMAC secret; prune skips unverifiable signed entries instead of deleting them.
 - Basic contact PII redaction runs before cache-miss summarization and separates redacted/non-redacted cache keys.
 - Rendered Markdown escapes untrusted document/model fields.
 - The default rules summarizer can run without an LLM or network access.

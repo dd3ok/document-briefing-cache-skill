@@ -47,10 +47,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     stats_parser = cache_subparsers.add_parser("stats", help="Show cache statistics.")
     stats_parser.add_argument("--cache-dir", default=".cache")
+    stats_parser.add_argument("--cache-hmac-secret-env", default=None)
     stats_parser.add_argument("--json", action="store_true")
 
     prune_parser = cache_subparsers.add_parser("prune", help="Delete expired or older cache entries.")
     prune_parser.add_argument("--cache-dir", default=".cache")
+    prune_parser.add_argument("--cache-hmac-secret-env", default=None)
     prune_parser.add_argument("--older-than", default=None)
     prune_parser.add_argument("--layer", default="all", choices=["all", "document_summaries", "rendered_outputs"])
     prune_parser.add_argument("--dry-run", action="store_true")
@@ -58,6 +60,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     clear_parser = cache_subparsers.add_parser("clear", help="Clear cache entries.")
     clear_parser.add_argument("--cache-dir", default=".cache")
+    clear_parser.add_argument("--cache-hmac-secret-env", default=None)
     clear_parser.add_argument("--layer", default="all", choices=["all", "document_summaries", "rendered_outputs"])
     clear_parser.add_argument("--yes", action="store_true")
     clear_parser.add_argument("--json", action="store_true")
@@ -117,7 +120,7 @@ def run_with_args(args: argparse.Namespace) -> int:
 
 
 def cache_main(args: argparse.Namespace) -> int:
-    pipeline = BriefingPipeline(cache_config=CacheConfig(cache_dir=args.cache_dir))
+    pipeline = BriefingPipeline(cache_config=CacheConfig(cache_dir=args.cache_dir, cache_hmac_secret_env=args.cache_hmac_secret_env))
     if args.cache_command == "stats":
         payload = pipeline.stats()
         write_payload(payload, as_json=args.json)

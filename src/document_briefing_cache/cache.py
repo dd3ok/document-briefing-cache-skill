@@ -120,12 +120,15 @@ class JsonFileCache:
         for path in self.root.glob("*.json"):
             result.entries_scanned += 1
             entry = self._read_entry(path)
-            expired = entry is None or self._is_expired(entry)
+            if entry is not None and self._is_unverifiable_signed_envelope(entry):
+                continue
+            corrupt = entry is None or self._is_corrupt_for_maintenance(entry)
+            expired = False if corrupt else self._is_expired(entry)
             older = False
             if older_than_seconds is not None:
                 modified = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
                 older = modified <= now - timedelta(seconds=older_than_seconds)
-            if expired or older:
+            if corrupt or expired or older:
                 result.entries_deleted += 1
                 result.bytes_deleted += path.stat().st_size
                 if not dry_run:
@@ -182,6 +185,11 @@ class JsonFileCache:
     def _is_envelope(self, value: dict[str, Any]) -> bool:
         return value.get("cache_version") == "1.0" and "payload" in value
 
+    def _looks_like_cache_envelope(self, value: dict[str, Any]) -> bool:
+        if any(field in value for field in ("cache_version", "payload_sha256", "payload_hmac_sha256")):
+            return True
+        return {"namespace", "key", "payload"}.issubset(value.keys())
+
     def _is_expired(self, value: dict[str, Any]) -> bool:
         if not self._is_envelope(value):
             return False
@@ -195,21 +203,40 @@ class JsonFileCache:
 
     def _valid_envelope(self, value: dict[str, Any], expected_key: str) -> bool:
         if not self._is_envelope(value):
-            return True
+            return not self._looks_like_cache_envelope(value)
         if value.get("namespace") != self.namespace or value.get("key") != expected_key:
             return False
         payload = value.get("payload")
         if not isinstance(payload, dict):
             return False
         expected_digest = value.get("payload_sha256")
-        if expected_digest and expected_digest != _stable_payload_sha256(payload):
+        if not isinstance(expected_digest, str):
+            return False
+        if not hmac.compare_digest(expected_digest, _stable_payload_sha256(payload)):
+            return False
+        actual_hmac = value.get("payload_hmac_sha256")
+        if actual_hmac is not None and not isinstance(actual_hmac, str):
+            return False
+        if actual_hmac and not self.hmac_secret:
             return False
         if self.hmac_secret:
             expected_hmac = _stable_envelope_hmac_sha256(self.hmac_secret, value)
-            actual_hmac = value.get("payload_hmac_sha256")
             if not isinstance(actual_hmac, str) or not hmac.compare_digest(actual_hmac, expected_hmac):
                 return False
         return True
+
+    def _is_corrupt_for_maintenance(self, value: dict[str, Any]) -> bool:
+        if not self._looks_like_cache_envelope(value):
+            return False
+        if not self._is_envelope(value):
+            return True
+        key = value.get("key")
+        if not isinstance(key, str):
+            return True
+        return not self._valid_envelope(value, key)
+
+    def _is_unverifiable_signed_envelope(self, value: dict[str, Any]) -> bool:
+        return self._looks_like_cache_envelope(value) and isinstance(value.get("payload_hmac_sha256"), str) and not self.hmac_secret
 
     def _harden_permissions(self, path: Path, directory: bool) -> None:
         if os.name != "posix":

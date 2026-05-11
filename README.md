@@ -194,8 +194,11 @@ Cache maintenance commands:
 ```bash
 python -m document_briefing_cache.cli cache stats --cache-dir .cache --json
 python -m document_briefing_cache.cli cache prune --cache-dir .cache --older-than 30d --dry-run --json
+python -m document_briefing_cache.cli cache prune --cache-dir .cache --cache-hmac-secret-env DBC_CACHE_HMAC_SECRET --json
 python -m document_briefing_cache.cli cache clear --cache-dir .cache --layer rendered_outputs --yes
 ```
+
+When pruning signed caches, pass the same `--cache-hmac-secret-env` used to write them. Without the secret, signed entries are skipped rather than deleted because the CLI cannot distinguish valid signed data from tampered data.
 
 ## The default summarizer
 
