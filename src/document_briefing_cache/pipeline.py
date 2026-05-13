@@ -11,7 +11,7 @@ from .hashing import (
     output_cache_key,
     stable_document_id,
 )
-from .models import CacheConfig, DocumentInput, DocumentSummaryState, PipelineResult, PipelineStats
+from .models import DOCUMENT_SUMMARY_SCHEMA_VERSION, CacheConfig, DocumentInput, DocumentSummaryState, PipelineResult, PipelineStats
 from .normalize import NORMALIZATION_UNKNOWNS_KEY, split_into_sections
 from .privacy import redact_document_input, redaction_policy_id
 from .render import TEMPLATE_VERSION, render_briefing
@@ -199,7 +199,7 @@ class BriefingPipeline:
 
     def _cached_summary_matches(self, document: DocumentInput, summary: DocumentSummaryState, fingerprint: str) -> bool:
         return (
-            summary.schema_version == "1.0.0"
+            summary.schema_version == DOCUMENT_SUMMARY_SCHEMA_VERSION
             and summary.document_id == stable_document_id(document, fingerprint)
             and summary.content_fingerprint == fingerprint
             and summary.summarizer_id == self.summarizer.summarizer_id

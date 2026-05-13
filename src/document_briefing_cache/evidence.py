@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from .models import DocumentSection, DocumentSummaryState, EvidenceRef
+from .models import DOCUMENT_SUMMARY_SCHEMA_VERSION, DocumentSection, DocumentSummaryState, EvidenceRef
 
 
 @dataclass(frozen=True)
@@ -51,6 +51,13 @@ def validate_summary_evidence(
     source_values = {value.normalized: value.value for value in extract_protected_values(source_text, raw=raw)}
     section_map = {section.section_id: section.text for section in sections or []}
 
+    if _schema_at_least(summary.schema_version, DOCUMENT_SUMMARY_SCHEMA_VERSION):
+        if summary.summary and not _has_source_evidence(summary.summary_evidence):
+            errors.append("summary evidence is required")
+        for idx, digest in enumerate(summary.sections_digest):
+            if digest.summary and not _has_source_evidence(digest.evidence):
+                errors.append(f"section digest evidence is required: {idx}")
+
     for idx, point in enumerate(summary.key_points):
         if point.text and not _has_source_evidence(point.evidence):
             errors.append(f"key point evidence is required: {idx}")
@@ -93,6 +100,21 @@ def _has_source_evidence(evidence_refs: list[EvidenceRef]) -> bool:
     return any(bool(ref.quote) for ref in evidence_refs)
 
 
+def _schema_at_least(actual: str, expected: str) -> bool:
+    return _schema_tuple(actual) >= _schema_tuple(expected)
+
+
+def _schema_tuple(version: str) -> tuple[int, int, int]:
+    parts = version.split(".")
+    values = []
+    for part in parts[:3]:
+        try:
+            values.append(int(part))
+        except ValueError:
+            values.append(0)
+    return tuple((values + [0, 0, 0])[:3])
+
+
 def _extract_from_text(text: str, path: str | None = None) -> list[ProtectedValue]:
     values: list[ProtectedValue] = []
     occupied: list[range] = []
@@ -123,6 +145,7 @@ def _overlaps(left: range, right: range) -> bool:
 
 
 def _iter_evidence(summary: DocumentSummaryState):
+    yield from summary.summary_evidence
     for point in summary.key_points:
         yield from point.evidence
     for decision in summary.decisions:
@@ -133,6 +156,8 @@ def _iter_evidence(summary: DocumentSummaryState):
         yield from risk.evidence
     for metric in summary.metrics:
         yield from metric.evidence
+    for digest in summary.sections_digest:
+        yield from digest.evidence
 
 
 def _iter_claim_text(summary: DocumentSummaryState):

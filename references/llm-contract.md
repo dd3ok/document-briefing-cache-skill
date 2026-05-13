@@ -21,7 +21,15 @@ Send one document at a time where possible:
 
 ## Required output
 
-The model must produce a valid `DocumentSummaryState`.
+The model must produce a valid `DocumentSummaryState` using schema `1.1.0`.
+
+For schema `1.1.0`, the model must populate:
+
+- `summary_evidence` when `summary` is non-empty.
+- `sections_digest[].evidence` when a section digest summary is non-empty.
+- Existing claim evidence for key points, decisions, actions, risks, and metrics.
+
+All evidence quotes must be copied verbatim from the supplied section text and include the matching `document_id` and `section_id`.
 
 ## Prompt rules
 
@@ -33,6 +41,7 @@ The model must produce a valid `DocumentSummaryState`.
 - Put missing values in `unknowns`.
 - Put unresolved questions in `open_questions`.
 - Cite evidence with `document_id`, `section_id`, and short quote.
+- Include `summary_evidence` and `sections_digest[].evidence` for summary-level and section-level claims.
 - Keep one document in one state object.
 
 ## Prompt caching design

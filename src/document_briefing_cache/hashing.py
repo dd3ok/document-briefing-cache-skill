@@ -5,7 +5,7 @@ import json
 import re
 from typing import Any
 
-from .models import DocumentInput, DocumentSummaryState
+from .models import DOCUMENT_SUMMARY_SCHEMA_VERSION, DocumentInput, DocumentSummaryState
 
 
 def normalize_text_for_hash(text: str | None) -> str:
@@ -50,7 +50,7 @@ def document_summary_cache_key(
     fingerprint: str,
     summarizer_id: str,
     skill_version: str,
-    schema_version: str = "1.0.0",
+    schema_version: str = DOCUMENT_SUMMARY_SCHEMA_VERSION,
     redaction_policy_id: str = "none",
 ) -> str:
     payload = {
@@ -90,7 +90,7 @@ def output_cache_key(
                 "document_id": stable_document_id(item, fingerprint),
                 "fingerprint": fingerprint,
                 "summarizer_id": summarizer_id,
-                "schema_version": "1.0.0",
+                "schema_version": DOCUMENT_SUMMARY_SCHEMA_VERSION,
             })
 
     payload = {

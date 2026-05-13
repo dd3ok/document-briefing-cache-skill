@@ -17,9 +17,11 @@
 
 ## DocumentSummaryState
 
+Current schema version: `1.1.0`.
+
 ```json
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "document_id": "stable id",
   "content_fingerprint": "sha256",
   "title": "title",
@@ -28,6 +30,7 @@
   "content_format": "input format",
   "language": "ko | en | unknown",
   "summary": "brief summary",
+  "summary_evidence": [{"document_id": "", "section_id": "", "source": null, "path": null, "quote": ""}],
   "key_points": [{"text": "", "evidence": []}],
   "decisions": [{"text": "", "owner": null, "evidence": []}],
   "actions": [{"action": "", "owner": null, "due": null, "status": "open", "evidence": []}],
@@ -37,11 +40,13 @@
   "topics": [],
   "open_questions": [],
   "unknowns": [],
-  "sections_digest": [],
+  "sections_digest": [{"section_id": "", "heading": null, "summary": "", "evidence": []}],
   "importance": 3,
   "summarizer_id": "rules-extractive-v0.2.0"
 }
 ```
+
+In schema `1.1.0`, a non-empty top-level `summary` requires `summary_evidence`, and each non-empty `sections_digest[].summary` requires `sections_digest[].evidence`. Evidence quotes must be copied verbatim from the matching source section.
 
 ## Design rule
 

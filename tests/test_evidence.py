@@ -37,6 +37,13 @@ def test_validate_summary_accepts_source_backed_values_and_evidence():
         document_id="incident",
         content_fingerprint="abc",
         summary="Payment API incident INC-2026-042 had 2.4% errors.",
+        summary_evidence=[
+            EvidenceRef(
+                document_id="incident",
+                section_id="s1",
+                quote="Payment API error rate reached 2.4%.",
+            )
+        ],
         metrics=[
             Metric(
                 name="payment_error_rate",
@@ -202,7 +209,44 @@ def test_validate_summary_requires_evidence_for_existing_source_backed_items():
     assert any("metric evidence is required" in error for error in errors)
 
 
+def test_schema_v11_requires_summary_and_section_digest_evidence():
+    source = "Decision: proceed."
+    summary = DocumentSummaryState(
+        document_id="doc",
+        content_fingerprint="abc",
+        schema_version="1.1.0",
+        summary="Decision: proceed.",
+        sections_digest=[SectionDigest(section_id="s1", summary="Decision: proceed.")],
+    )
+
+    errors = validate_summary_evidence(summary, source, sections=[DocumentSection(section_id="s1", order=0, text=source)])
+
+    assert any("summary evidence is required" in error for error in errors)
+    assert any("section digest evidence is required" in error for error in errors)
+
+
+def test_schema_v11_validates_summary_evidence_quotes():
+    source = "Decision: proceed."
+    sections = [DocumentSection(section_id="s1", order=0, text=source)]
+    summary = DocumentSummaryState(
+        document_id="doc",
+        content_fingerprint="abc",
+        schema_version="1.1.0",
+        summary="Decision: proceed.",
+        summary_evidence=[EvidenceRef(document_id="doc", section_id="s1", quote="Decision: proceed.")],
+        sections_digest=[
+            SectionDigest(
+                section_id="s1",
+                summary="Decision: proceed.",
+                evidence=[EvidenceRef(document_id="doc", section_id="s1", quote="Decision: proceed.")],
+            )
+        ],
+    )
+
+    assert validate_summary_evidence(summary, source, sections=sections) == []
+
+
 def test_validate_summary_allows_empty_claim_lists_without_evidence():
-    summary = DocumentSummaryState(document_id="doc", content_fingerprint="abc", summary="Plain overview.")
+    summary = DocumentSummaryState(document_id="doc", content_fingerprint="abc", schema_version="1.0.0", summary="Plain overview.")
 
     assert validate_summary_evidence(summary, "Plain overview.") == []

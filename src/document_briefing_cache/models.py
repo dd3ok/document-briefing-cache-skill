@@ -6,6 +6,9 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, ConfigDict
 
 
+DOCUMENT_SUMMARY_SCHEMA_VERSION = "1.1.0"
+
+
 class ContentFormat(str, Enum):
     text = "text"
     markdown = "markdown"
@@ -112,12 +115,13 @@ class SectionDigest(BaseModel):
     section_id: str
     heading: str | None = None
     summary: str
+    evidence: list[EvidenceRef] = Field(default_factory=list)
 
 
 class DocumentSummaryState(BaseModel):
     model_config = ConfigDict(use_enum_values=True)
 
-    schema_version: str = "1.0.0"
+    schema_version: str = DOCUMENT_SUMMARY_SCHEMA_VERSION
     document_id: str
     content_fingerprint: str
     title: str | None = None
@@ -126,6 +130,7 @@ class DocumentSummaryState(BaseModel):
     content_format: ContentFormat | str = ContentFormat.unknown
     language: str = "unknown"
     summary: str = ""
+    summary_evidence: list[EvidenceRef] = Field(default_factory=list)
     key_points: list[KeyPoint] = Field(default_factory=list)
     decisions: list[Decision] = Field(default_factory=list)
     actions: list[ActionItem] = Field(default_factory=list)

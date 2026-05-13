@@ -1,6 +1,7 @@
+from document_briefing_cache.cache import JsonFileCache
 from document_briefing_cache.hashing import document_content_fingerprint, document_summary_cache_key
 from document_briefing_cache.models import DocumentInput, DocumentSummaryState, KeyPoint
-from document_briefing_cache.pipeline import BriefingPipeline
+from document_briefing_cache.pipeline import BriefingPipeline, SKILL_VERSION
 from document_briefing_cache.summarizers import BaseSummarizer, RuleBasedExtractiveSummarizer
 
 
@@ -161,6 +162,32 @@ def test_old_skill_version_cached_summary_missing_evidence_is_cache_miss(tmp_pat
     pipeline.document_cache.set_model(old_key, old_summary)
 
     result = pipeline.run([doc], use_output_cache=False)
+
+    assert result.stats.document_cache_hits == 0
+    assert result.stats.document_cache_misses == 1
+    assert result.stats.summarizer_calls == 1
+
+
+def test_schema_100_cached_summary_is_treated_as_miss_after_v11(tmp_path):
+    docs = [DocumentInput(document_id="schema", title="Schema", text="Decision: proceed.")]
+    fingerprint = document_content_fingerprint(docs[0])
+    key = document_summary_cache_key(
+        docs[0],
+        fingerprint=fingerprint,
+        summarizer_id="counting-rules-v1",
+        skill_version=SKILL_VERSION,
+        schema_version="1.0.0",
+    )
+    old_summary = DocumentSummaryState(
+        schema_version="1.0.0",
+        document_id="schema",
+        content_fingerprint=fingerprint,
+        summary="Old schema.",
+        summarizer_id="counting-rules-v1",
+    )
+    JsonFileCache(tmp_path, "document_summaries").set_model(key, old_summary)
+
+    result = BriefingPipeline(cache_dir=tmp_path, summarizer=CountingSummarizer()).run(docs, use_output_cache=False)
 
     assert result.stats.document_cache_hits == 0
     assert result.stats.document_cache_misses == 1

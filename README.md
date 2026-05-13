@@ -222,6 +222,8 @@ For high-quality summaries of new documents, connect an LLM summarizer at the ca
 
 Privacy note: `rules` mode is local and token-free. LLM-backed summarizers send cache misses to the configured provider, such as OpenAI, and require the relevant API key. Cache directories are plaintext JSON and may persist structured summaries, names, IDs, dates, metrics, evidence quotes, sources, and rendered outputs. HMAC detects tampering but does not hide contents. Keep `.cache/` out of git, use encrypted storage or tmpfs when needed, and use `ephemeral`, `--redact-pii`, or explicit cache clearing for sensitive documents.
 
+Evidence note: `DocumentSummaryState` schema `1.1.0` requires evidence for the top-level summary and each section digest, in addition to evidence for key points, decisions, actions, risks, and metrics. Evidence quotes should be copied from the normalized source sections so validation can reject unsupported claims and stale `1.0.0` document-summary caches.
+
 ## Recommended production design
 
 ```text
