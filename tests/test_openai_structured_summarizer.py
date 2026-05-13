@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from document_briefing_cache.llm import LLMConfig
 from document_briefing_cache.models import DocumentInput, DocumentSection
 from document_briefing_cache.normalize import split_into_sections
@@ -177,6 +179,17 @@ def test_openai_structured_summarizer_default_prompt_version_reflects_evidence_c
 
     assert summarizer.prompt_version == "prompt-v3"
     assert summarizer.summarizer_id.endswith(":schema-1.1.0:prompt-v3")
+
+
+def test_openai_summarizer_rejects_mismatched_schema_version():
+    payload = expected_structured_payload()
+    payload["schema_version"] = "1.0.0"
+    client = FakeClient(json.dumps(payload))
+    summarizer = OpenAIStructuredSummarizer(model="test-model", client=client)
+    document = DocumentInput(document_id="doc-1", title="Doc", text="Decision: proceed.")
+
+    with pytest.raises(RuntimeError, match="schema_version|expected schema"):
+        summarizer.summarize(document, split_into_sections(document.text), "fingerprint")
 
 
 def test_openai_summarizer_passes_timeout_and_max_output_tokens():

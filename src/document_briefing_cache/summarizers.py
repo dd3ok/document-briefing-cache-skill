@@ -231,6 +231,11 @@ class OpenAIStructuredSummarizer(BaseSummarizer):
             raise RuntimeError("No output_text returned by provider response.")
 
         state = DocumentSummaryState.model_validate(json.loads(output_text))
+        if state.schema_version != DOCUMENT_SUMMARY_SCHEMA_VERSION:
+            raise RuntimeError(
+                f"Structured summarizer returned schema_version {state.schema_version!r}, "
+                f"expected schema {DOCUMENT_SUMMARY_SCHEMA_VERSION!r}."
+            )
         if state.document_id != doc_id:
             raise RuntimeError(f"Structured summarizer returned document_id {state.document_id!r}, expected {doc_id!r}.")
         if state.content_fingerprint != content_fingerprint:
