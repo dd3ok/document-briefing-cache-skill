@@ -14,7 +14,11 @@ Commands:
 TMPDIR=/tmp PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m pytest -q
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 scripts/validate_skill.py
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 scripts/validate_skill.py --run-evals
+TMPDIR=/tmp PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m pytest tests/test_distribution_smoke.py -q
+python3 -m build
 ```
+
+Distribution smoke validation builds both wheel and sdist artifacts, installs them into fresh virtual environments, and runs the renderer from `/tmp` so default templates must be loaded from packaged resources rather than repository-local files.
 
 Observed result:
 

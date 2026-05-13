@@ -55,7 +55,7 @@ Start here. Open only what the task requires:
 - `src/document_briefing_cache/cache.py`: JSON cache, TTL, prune, clear, privacy-oriented file permissions.
 - `src/document_briefing_cache/privacy.py`: basic contact PII redaction before summarization and cache writes.
 - `src/document_briefing_cache/pipeline.py`: orchestration and cache stats.
-- `src/document_briefing_cache/render.py` and `templates/*.md.j2`: template-only rerendering.
+- `src/document_briefing_cache/render.py` and `src/document_briefing_cache/templates/*.md.j2`: template-only rerendering.
 - `src/document_briefing_cache/evidence.py`: protected values, evidence quotes, hallucination checks.
 - `references/schema.md`: extending `DocumentSummaryState`.
 - `references/llm-contract.md`: wiring LLM structured summarizers.

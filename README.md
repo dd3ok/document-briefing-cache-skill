@@ -62,13 +62,13 @@ Only new document added → summarize only that document
 │   ├── summarizers.py
 │   ├── render.py
 │   ├── pipeline.py
-│   └── cli.py
-├── templates/
-│   ├── brief.md.j2
-│   ├── executive.md.j2
-│   ├── action_items.md.j2
-│   ├── digest.md.j2
-│   └── debug.md.j2
+│   ├── cli.py
+│   └── templates/
+│       ├── brief.md.j2
+│       ├── executive.md.j2
+│       ├── action_items.md.j2
+│       ├── digest.md.j2
+│       └── debug.md.j2
 ├── references/
 │   ├── architecture.md
 │   ├── schema.md

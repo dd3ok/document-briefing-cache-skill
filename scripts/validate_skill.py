@@ -17,11 +17,11 @@ REQUIRED_FILES = [
     "src/document_briefing_cache/models.py",
     "src/document_briefing_cache/pipeline.py",
     "src/document_briefing_cache/summarizers.py",
-    "templates/brief.md.j2",
-    "templates/executive.md.j2",
-    "templates/action_items.md.j2",
-    "templates/digest.md.j2",
-    "templates/debug.md.j2",
+    "src/document_briefing_cache/templates/brief.md.j2",
+    "src/document_briefing_cache/templates/executive.md.j2",
+    "src/document_briefing_cache/templates/action_items.md.j2",
+    "src/document_briefing_cache/templates/digest.md.j2",
+    "src/document_briefing_cache/templates/debug.md.j2",
     "examples/mixed_documents.json",
     "evals/briefing_eval_cases.json",
     "evals/trigger_eval_cases.json",
@@ -62,7 +62,7 @@ def main(argv: list[str] | None = None) -> int:
     if "compare" in skill.split("---", 2)[1].lower():
         errors.append("SKILL.md metadata should not mention compare unless a compare mode exists.")
 
-    template_dir = ROOT / "templates"
+    template_dir = ROOT / "src" / "document_briefing_cache" / "templates"
     modes = {path.stem.replace(".md", "") for path in template_dir.glob("*.md.j2")}
     expected_modes = {"brief", "executive", "action_items", "digest", "debug"}
     missing_modes = expected_modes - modes
