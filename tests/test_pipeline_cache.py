@@ -1,3 +1,4 @@
+from document_briefing_cache.hashing import document_content_fingerprint, document_summary_cache_key
 from document_briefing_cache.models import DocumentInput, DocumentSummaryState, KeyPoint
 from document_briefing_cache.pipeline import BriefingPipeline
 from document_briefing_cache.summarizers import BaseSummarizer, RuleBasedExtractiveSummarizer
@@ -137,3 +138,30 @@ def test_validation_errors_prevent_document_cache_write(tmp_path):
 
     assert result.stats.evidence_validation_errors > 0
     assert list((tmp_path / "document_summaries").glob("*.json")) == []
+
+
+def test_old_skill_version_cached_summary_missing_evidence_is_cache_miss(tmp_path):
+    doc = DocumentInput(document_id="stale", title="Stale", text="Decision: proceed.")
+    fingerprint = document_content_fingerprint(doc)
+    old_key = document_summary_cache_key(
+        doc,
+        fingerprint=fingerprint,
+        summarizer_id=CountingSummarizer.summarizer_id,
+        skill_version="0.3.0",
+        redaction_policy_id="none",
+    )
+    old_summary = DocumentSummaryState(
+        document_id=doc.document_id,
+        content_fingerprint=fingerprint,
+        summary="Decision: proceed.",
+        key_points=[KeyPoint(text="Decision: proceed.")],
+        summarizer_id=CountingSummarizer.summarizer_id,
+    )
+    pipeline = BriefingPipeline(cache_dir=tmp_path, summarizer=CountingSummarizer())
+    pipeline.document_cache.set_model(old_key, old_summary)
+
+    result = pipeline.run([doc], use_output_cache=False)
+
+    assert result.stats.document_cache_hits == 0
+    assert result.stats.document_cache_misses == 1
+    assert result.stats.summarizer_calls == 1

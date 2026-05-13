@@ -221,7 +221,7 @@ def validate_openai_yaml(path: Path) -> list[str]:
     text = path.read_text(encoding="utf-8")
     errors = []
     required_fragments = [
-        'version: "0.3.0"',
+        'version: "0.3.1"',
         "interface:",
         'display_name: "Document Briefing Cache"',
         'short_description: "Cached structured document briefings"',
