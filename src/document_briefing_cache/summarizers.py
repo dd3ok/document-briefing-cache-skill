@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import copy
 import json
 import re
 from abc import ABC, abstractmethod
@@ -196,7 +197,7 @@ class OpenAIStructuredSummarizer(BaseSummarizer):
                 "format": {
                     "type": "json_schema",
                     "name": "DocumentSummaryState",
-                    "schema": DocumentSummaryState.model_json_schema(),
+                    "schema": strict_json_schema(DocumentSummaryState.model_json_schema()),
                     "strict": True,
                 }
             },
@@ -212,6 +213,25 @@ class OpenAIStructuredSummarizer(BaseSummarizer):
             raise RuntimeError("Structured summarizer returned a mismatched content_fingerprint.")
         state.summarizer_id = self.summarizer_id
         return state
+
+
+def strict_json_schema(schema: dict) -> dict:
+    normalized = copy.deepcopy(schema)
+    _normalize_strict_json_schema(normalized)
+    return normalized
+
+
+def _normalize_strict_json_schema(node):
+    if isinstance(node, dict):
+        properties = node.get("properties")
+        if isinstance(properties, dict):
+            node["additionalProperties"] = False
+            node["required"] = list(properties.keys())
+        for value in node.values():
+            _normalize_strict_json_schema(value)
+    elif isinstance(node, list):
+        for value in node:
+            _normalize_strict_json_schema(value)
 
 
 def split_sentences(text: str) -> list[str]:

@@ -52,10 +52,10 @@ def validate_summary_evidence(
     section_map = {section.section_id: section.text for section in sections or []}
 
     if _schema_at_least(summary.schema_version, DOCUMENT_SUMMARY_SCHEMA_VERSION):
-        if summary.summary and not _has_source_evidence(summary.summary_evidence):
+        if summary.summary and _has_quoteable_source(source_text, section_map) and not _has_source_evidence(summary.summary_evidence):
             errors.append("summary evidence is required")
         for idx, digest in enumerate(summary.sections_digest):
-            if digest.summary and not _has_source_evidence(digest.evidence):
+            if digest.summary and _has_quoteable_digest_source(digest.section_id, source_text, section_map) and not _has_source_evidence(digest.evidence):
                 errors.append(f"section digest evidence is required: {idx}")
 
     for idx, point in enumerate(summary.key_points):
@@ -98,6 +98,16 @@ def validate_summary_evidence(
 
 def _has_source_evidence(evidence_refs: list[EvidenceRef]) -> bool:
     return any(bool(ref.quote) for ref in evidence_refs)
+
+
+def _has_quoteable_source(source_text: str, section_map: dict[str, str]) -> bool:
+    return bool(_squash_space(source_text)) or any(_squash_space(text) for text in section_map.values())
+
+
+def _has_quoteable_digest_source(section_id: str, source_text: str, section_map: dict[str, str]) -> bool:
+    if section_id in section_map:
+        return bool(_squash_space(section_map[section_id]))
+    return bool(_squash_space(source_text))
 
 
 def _schema_at_least(actual: str, expected: str) -> bool:

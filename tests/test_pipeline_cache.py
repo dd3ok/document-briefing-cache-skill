@@ -141,6 +141,24 @@ def test_validation_errors_prevent_document_cache_write(tmp_path):
     assert list((tmp_path / "document_summaries").glob("*.json")) == []
 
 
+def test_empty_document_summary_does_not_require_impossible_summary_evidence(tmp_path):
+    docs = [DocumentInput(document_id="empty", title="Empty doc", text="")]
+    summarizer1 = CountingSummarizer()
+    first = BriefingPipeline(cache_dir=tmp_path, summarizer=summarizer1).run(docs, use_output_cache=False)
+
+    assert first.stats.evidence_validation_errors == 0
+    assert first.stats.document_cache_misses == 1
+    assert first.stats.summarizer_calls == 1
+    assert "Document text is empty after normalization." in first.summaries[0].unknowns
+
+    summarizer2 = CountingSummarizer()
+    second = BriefingPipeline(cache_dir=tmp_path, summarizer=summarizer2).run(docs, use_output_cache=False)
+
+    assert second.stats.document_cache_hits == 1
+    assert second.stats.summarizer_calls == 0
+    assert summarizer2.calls == 0
+
+
 def test_old_skill_version_cached_summary_missing_evidence_is_cache_miss(tmp_path):
     doc = DocumentInput(document_id="stale", title="Stale", text="Decision: proceed.")
     fingerprint = document_content_fingerprint(doc)
