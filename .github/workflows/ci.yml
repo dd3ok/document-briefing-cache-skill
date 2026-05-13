@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Test Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package
+        run: python -m pip install -e ".[dev]"
+      - name: Run tests
+        env:
+          TMPDIR: /tmp
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python -m pytest -q
+      - name: Validate skill bundle
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python scripts/validate_skill.py --run-evals
+
+  dist-smoke:
+    name: Distribution smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build distributions
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+      - name: Smoke test wheel
+        run: |
+          python -m venv /tmp/dbc-wheel-venv
+          /tmp/dbc-wheel-venv/bin/python -m pip install --upgrade pip
+          /tmp/dbc-wheel-venv/bin/python -m pip install dist/*.whl
+          cd /tmp
+          /tmp/dbc-wheel-venv/bin/python - <<'PY'
+          from document_briefing_cache.models import DocumentInput
+          from document_briefing_cache.pipeline import BriefingPipeline
+
+          docs = [
+              DocumentInput(
+                  document_id="wheel",
+                  title="Wheel",
+                  text="Action: Release worker should package templates.",
+              )
+          ]
+          result = BriefingPipeline(cache_dir="dbc-wheel-cache").run(docs, mode="brief", use_output_cache=False)
+          assert "문서 브리핑" in result.output
+          assert "Wheel" in result.output
+          PY
+      - name: Smoke test sdist
+        run: |
+          python -m venv /tmp/dbc-sdist-venv
+          /tmp/dbc-sdist-venv/bin/python -m pip install --upgrade pip
+          /tmp/dbc-sdist-venv/bin/python -m pip install dist/*.tar.gz
+          cd /tmp
+          /tmp/dbc-sdist-venv/bin/python - <<'PY'
+          from document_briefing_cache.models import DocumentInput
+          from document_briefing_cache.pipeline import BriefingPipeline
+
+          docs = [
+              DocumentInput(
+                  document_id="sdist",
+                  title="Sdist",
+                  text="Action: Release worker should package templates.",
+              )
+          ]
+          result = BriefingPipeline(cache_dir="dbc-sdist-cache").run(docs, mode="brief", use_output_cache=False)
+          assert "문서 브리핑" in result.output
+          assert "Sdist" in result.output
+          PY
