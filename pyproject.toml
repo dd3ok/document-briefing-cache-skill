@@ -11,7 +11,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=8.0.0"
+  "pytest>=8.0.0",
+  "build>=1.2.0"
 ]
 pdf = [
   "pypdf>=4.0.0"
@@ -29,6 +30,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+document_briefing_cache = ["templates/*.md.j2"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
