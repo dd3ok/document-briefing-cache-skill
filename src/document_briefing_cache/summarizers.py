@@ -7,6 +7,7 @@ import re
 from abc import ABC, abstractmethod
 
 from .hashing import stable_document_id
+from .llm import LLMConfig, chunk_sections_by_budget, merge_document_states
 from .models import (
     ActionItem,
     DOCUMENT_SUMMARY_SCHEMA_VERSION,
@@ -162,10 +163,13 @@ class OpenAIStructuredSummarizer(BaseSummarizer):
         "Do not invent missing values; use unknowns and open_questions."
     )
 
-    def __init__(self, model: str | None = None, client=None, prompt_version: str = "prompt-v3"):
+    transient_status_codes = {408, 409, 429, 500, 502, 503, 504}
+
+    def __init__(self, model: str | None = None, client=None, prompt_version: str = "prompt-v3", llm_config: LLMConfig | None = None):
         self.model = model or os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
         self.client = client
         self.prompt_version = prompt_version
+        self.llm_config = llm_config or LLMConfig()
         self.summarizer_id = f"{self.summarizer_family}:{self.model}:schema-{DOCUMENT_SUMMARY_SCHEMA_VERSION}:{self.prompt_version}"
 
     def summarize(self, document: DocumentInput, sections: list[DocumentSection], content_fingerprint: str) -> DocumentSummaryState:  # pragma: no cover - requires external API
@@ -177,6 +181,22 @@ class OpenAIStructuredSummarizer(BaseSummarizer):
             self.client = OpenAI()
 
         doc_id = stable_document_id(document, content_fingerprint)
+        batches = chunk_sections_by_budget(sections, self.llm_config) if sections else [[]]
+        partials = [self._summarize_batch(document, batch, content_fingerprint, doc_id) for batch in batches]
+        if len(partials) == 1:
+            return partials[0]
+
+        state = merge_document_states(partials)
+        state.summarizer_id = self.summarizer_id
+        return state
+
+    def _summarize_batch(
+        self,
+        document: DocumentInput,
+        sections: list[DocumentSection],
+        content_fingerprint: str,
+        doc_id: str,
+    ) -> DocumentSummaryState:
         prompt = {
             "document_id": doc_id,
             "title": document.title,
@@ -187,7 +207,7 @@ class OpenAIStructuredSummarizer(BaseSummarizer):
             "sections": [section.model_dump(mode="json") for section in sections],
         }
 
-        response = self.client.responses.create(
+        response = self._create_response_with_retry(
             model=self.model,
             input=[
                 {"role": "system", "content": self.system_prompt},
@@ -201,6 +221,10 @@ class OpenAIStructuredSummarizer(BaseSummarizer):
                     "strict": True,
                 }
             },
+            max_output_tokens=self.llm_config.max_output_tokens,
+            truncation="disabled",
+            store=False,
+            timeout=self.llm_config.timeout_seconds,
         )
         output_text = getattr(response, "output_text", None)
         if not output_text:
@@ -213,6 +237,20 @@ class OpenAIStructuredSummarizer(BaseSummarizer):
             raise RuntimeError("Structured summarizer returned a mismatched content_fingerprint.")
         state.summarizer_id = self.summarizer_id
         return state
+
+    def _create_response_with_retry(self, **kwargs):
+        attempts = max(0, self.llm_config.max_retries) + 1
+        for attempt in range(attempts):
+            try:
+                return self.client.responses.create(**kwargs)
+            except Exception as exc:
+                if attempt == attempts - 1 or not self._is_transient_provider_error(exc):
+                    raise
+        raise RuntimeError("Provider retry loop exhausted unexpectedly.")
+
+    def _is_transient_provider_error(self, exc: Exception) -> bool:
+        status_code = getattr(exc, "status_code", None)
+        return status_code in self.transient_status_codes
 
 
 def strict_json_schema(schema: dict) -> dict:

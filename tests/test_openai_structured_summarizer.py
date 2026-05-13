@@ -1,6 +1,7 @@
 import json
 
-from document_briefing_cache.models import DocumentInput
+from document_briefing_cache.llm import LLMConfig
+from document_briefing_cache.models import DocumentInput, DocumentSection
 from document_briefing_cache.normalize import split_into_sections
 from document_briefing_cache.summarizers import OpenAIStructuredSummarizer
 
@@ -18,6 +19,44 @@ class FakeResponses:
 class FakeClient:
     def __init__(self, output_text):
         self.responses = FakeResponses(output_text)
+
+
+class RecordingResponses:
+    def __init__(self, output_text):
+        self.output_text = output_text
+        self.calls = []
+
+    def create(self, **kwargs):
+        self.calls.append(kwargs)
+        return type("FakeResponse", (), {"output_text": self.output_text})()
+
+
+class RecordingClient:
+    def __init__(self, output_text):
+        self.responses = RecordingResponses(output_text)
+
+
+class TransientProviderError(Exception):
+    def __init__(self, status_code):
+        super().__init__(f"provider failed with {status_code}")
+        self.status_code = status_code
+
+
+class FlakyResponses:
+    def __init__(self, output_text):
+        self.output_text = output_text
+        self.calls = []
+
+    def create(self, **kwargs):
+        self.calls.append(kwargs)
+        if len(self.calls) == 1:
+            raise TransientProviderError(429)
+        return type("FakeResponse", (), {"output_text": self.output_text})()
+
+
+class FlakyClient:
+    def __init__(self, output_text):
+        self.responses = FlakyResponses(output_text)
 
 
 def expected_structured_payload():
@@ -52,6 +91,18 @@ def expected_structured_payload():
         "importance": 3,
         "summarizer_id": "will-be-overwritten",
     }
+
+
+def valid_state_json(document_id="doc-1", fingerprint="fingerprint"):
+    payload = expected_structured_payload()
+    payload["document_id"] = document_id
+    payload["content_fingerprint"] = fingerprint
+    for evidence in payload["summary_evidence"]:
+        evidence["document_id"] = document_id
+    for digest in payload["sections_digest"]:
+        for evidence in digest["evidence"]:
+            evidence["document_id"] = document_id
+    return json.dumps(payload)
 
 
 def object_schemas(schema, path="$"):
@@ -126,3 +177,52 @@ def test_openai_structured_summarizer_default_prompt_version_reflects_evidence_c
 
     assert summarizer.prompt_version == "prompt-v3"
     assert summarizer.summarizer_id.endswith(":schema-1.1.0:prompt-v3")
+
+
+def test_openai_summarizer_passes_timeout_and_max_output_tokens():
+    client = RecordingClient(valid_state_json())
+    summarizer = OpenAIStructuredSummarizer(
+        model="test-model",
+        client=client,
+        llm_config=LLMConfig(timeout_seconds=12.5, max_output_tokens=1234),
+    )
+    document = DocumentInput(document_id="doc-1", title="Doc", text="Decision: proceed.")
+
+    summarizer.summarize(document, split_into_sections(document.text), "fingerprint")
+
+    request = client.responses.calls[0]
+    assert request["timeout"] == 12.5
+    assert request["max_output_tokens"] == 1234
+
+
+def test_openai_summarizer_retries_transient_provider_errors():
+    client = FlakyClient(valid_state_json())
+    summarizer = OpenAIStructuredSummarizer(
+        model="test-model",
+        client=client,
+        llm_config=LLMConfig(max_retries=1),
+    )
+    document = DocumentInput(document_id="doc-1", title="Doc", text="Decision: proceed.")
+
+    state = summarizer.summarize(document, split_into_sections(document.text), "fingerprint")
+
+    assert state.document_id == "doc-1"
+    assert len(client.responses.calls) == 2
+
+
+def test_openai_summarizer_chunks_large_documents_before_provider_call():
+    client = RecordingClient(valid_state_json(document_id="doc-large"))
+    summarizer = OpenAIStructuredSummarizer(
+        model="test-model",
+        client=client,
+        llm_config=LLMConfig(max_input_tokens=10),
+    )
+    document = DocumentInput(document_id="doc-large", title="Large", text=("a" * 80) + "\n\n" + ("b" * 80))
+    sections = [
+        DocumentSection(section_id="s1", order=0, text="a" * 80),
+        DocumentSection(section_id="s2", order=1, text="b" * 80),
+    ]
+
+    summarizer.summarize(document, sections, "fingerprint")
+
+    assert len(client.responses.calls) == 2

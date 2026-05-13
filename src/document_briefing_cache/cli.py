@@ -5,6 +5,7 @@ import json
 import sys
 
 from .cache import merge_operation_results
+from .llm import LLMConfig
 from .models import CacheConfig
 from .normalize import load_path_to_documents
 from .pipeline import BriefingPipeline
@@ -24,6 +25,11 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--locale", default="ko-KR")
     parser.add_argument("--cache-dir", default=".cache")
     parser.add_argument("--summary-mode", default="rules", choices=["rules", "openai"])
+    parser.add_argument("--openai-model", default=None)
+    parser.add_argument("--llm-timeout", type=float, default=60.0)
+    parser.add_argument("--llm-max-retries", type=int, default=2)
+    parser.add_argument("--llm-max-input-tokens", type=int, default=12000)
+    parser.add_argument("--llm-max-output-tokens", type=int, default=4000)
     parser.add_argument("--no-output-cache", action="store_true")
     parser.add_argument("--cache-policy", default="read_write", choices=["read_write", "read_only", "refresh", "bypass", "ephemeral", "ttl", "persistent"])
     parser.add_argument("--document-ttl", default="30d")
@@ -104,7 +110,18 @@ def run_with_args(args: argparse.Namespace) -> int:
     for input_path in args.input:
         documents.extend(load_path_to_documents(input_path))
 
-    summarizer = RuleBasedExtractiveSummarizer() if args.summary_mode == "rules" else OpenAIStructuredSummarizer()
+    if args.summary_mode == "rules":
+        summarizer = RuleBasedExtractiveSummarizer()
+    else:
+        summarizer = OpenAIStructuredSummarizer(
+            model=args.openai_model,
+            llm_config=LLMConfig(
+                timeout_seconds=args.llm_timeout,
+                max_retries=args.llm_max_retries,
+                max_input_tokens=args.llm_max_input_tokens,
+                max_output_tokens=args.llm_max_output_tokens,
+            ),
+        )
     cache_config = CacheConfig(
         cache_dir=args.cache_dir,
         policy=args.cache_policy,

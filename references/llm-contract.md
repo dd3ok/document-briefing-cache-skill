@@ -19,6 +19,8 @@ Send one document at a time where possible:
 }
 ```
 
+Large documents may be sent as multiple section batches for the same document. The adapter estimates input tokens deterministically from text length, groups whole sections up to the configured budget, and never splits a single section. If one section exceeds the budget, it is sent alone so section IDs and evidence references remain stable.
+
 ## Required output
 
 The model must produce a valid `DocumentSummaryState` using schema `1.1.0`.
@@ -43,6 +45,30 @@ All evidence quotes must be copied verbatim from the supplied section text and i
 - Cite evidence with `document_id`, `section_id`, and short quote.
 - Include `summary_evidence` and `sections_digest[].evidence` for summary-level and section-level claims.
 - Keep one document in one state object.
+
+## Chunk-map-merge
+
+When a document exceeds the input budget, summarize each chunk independently with the same `document_id` and `content_fingerprint`, then merge the returned states:
+
+- Validate every partial state before merging.
+- Reject mismatched `document_id` or `content_fingerprint` values.
+- Concatenate unique summary text in section order.
+- Merge and deduplicate evidence-backed lists, including key points, decisions, actions, risks, metrics, and section digests.
+- Preserve IDs, names, dates, numeric values, and evidence quotes from the partial states.
+- Use the merged state as the cache value; do not cache provider-specific raw responses as the document summary.
+
+Do not collapse multiple documents into one large provider call when document-level caching is possible.
+
+## Budget, timeout, and retries
+
+The OpenAI adapter exposes production controls:
+
+- `max_input_tokens`: section-batching budget. Default: `12000`.
+- `max_output_tokens`: provider response budget. Default: `4000`.
+- `timeout_seconds`: per-provider-call timeout. Default: `60.0`.
+- `max_retries`: retry count after the first attempt. Default: `2`.
+
+Provider calls set truncation to disabled and request non-stored responses. Retry only transient provider failures with status codes `408`, `409`, `429`, `500`, `502`, `503`, or `504`. Do not retry JSON decoding failures, schema validation failures, or returned-state identity mismatches; those are contract failures that need correction rather than another identical call.
 
 ## Prompt caching design
 

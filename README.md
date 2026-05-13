@@ -220,6 +220,23 @@ The default `rules` summarizer is intentionally deterministic and token-free. It
 
 For high-quality summaries of new documents, connect an LLM summarizer at the cache-miss step. Keep the output structured as `DocumentSummaryState`.
 
+OpenAI-backed runs can be configured with explicit model, timeout, retry, and token-budget controls:
+
+```bash
+OPENAI_API_KEY="..." python -m document_briefing_cache.cli run \
+  --input examples/mixed_documents.json \
+  --summary-mode openai \
+  --openai-model gpt-4.1-mini \
+  --llm-timeout 60 \
+  --llm-max-retries 2 \
+  --llm-max-input-tokens 12000 \
+  --llm-max-output-tokens 4000 \
+  --cache-dir .cache \
+  --show-stats
+```
+
+When a document exceeds the input budget, the OpenAI adapter summarizes whole-section chunks and merges the structured states before writing the document summary cache.
+
 Privacy note: `rules` mode is local and token-free. LLM-backed summarizers send cache misses to the configured provider, such as OpenAI, and require the relevant API key. Cache directories are plaintext JSON and may persist structured summaries, names, IDs, dates, metrics, evidence quotes, sources, and rendered outputs. HMAC detects tampering but does not hide contents. Keep `.cache/` out of git, use encrypted storage or tmpfs when needed, and use `ephemeral`, `--redact-pii`, or explicit cache clearing for sensitive documents.
 
 Evidence note: `DocumentSummaryState` schema `1.1.0` requires evidence for the top-level summary and each section digest, in addition to evidence for key points, decisions, actions, risks, and metrics. Evidence quotes should be copied from the normalized source sections so validation can reject unsupported claims and stale `1.0.0` document-summary caches.
