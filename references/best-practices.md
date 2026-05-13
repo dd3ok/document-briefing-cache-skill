@@ -59,9 +59,19 @@ Keep a separate manual benchmark worksheet for actual model-side invocation beha
 
 Document summaries can contain evidence quotes, names, IDs, dates, metrics, sources, and rendered outputs. Prefer private cache permissions, short output-cache TTLs, and `ephemeral` mode for sensitive documents.
 
-Use `--redact-pii` when basic contact information should not reach LLM cache-miss calls or local cache files. Redaction is a profile, so include its policy id in document and output cache keys.
+For sensitive documents, the safe default is no persistent cache:
 
-Use HMAC-signed cache envelopes when local tamper detection matters. Sign the payload and security-relevant metadata such as namespace, key, cache version, payload digest, and expiry. HMAC is not encryption; cache files remain plaintext unless the deployment provides encrypted storage, tmpfs, or another encrypted backend.
+```bash
+python -m document_briefing_cache.cli run \
+  --input sensitive.json \
+  --cache-policy ephemeral \
+  --no-output-cache \
+  --redact-pii
+```
+
+Use `--redact-pii` when basic contact information should not reach LLM cache-miss calls or local cache files. Redaction is a profile, so include its policy id in document and output cache keys. The built-in `basic-contact-v1` redaction profile covers common email addresses, Korean mobile numbers, and US phone numbers. It is not a complete PII detector for names, addresses, national IDs, account numbers, cards, API keys, or access tokens.
+
+Use HMAC-signed cache envelopes when local tamper detection matters. Sign the payload and security-relevant metadata such as namespace, key, cache version, payload digest, and expiry. HMAC signing is tamper detection only, not encryption; cache files remain plaintext unless the deployment provides encrypted storage, tmpfs, or another encrypted backend.
 
 Pass the HMAC secret to cache maintenance commands that need to verify signed entries. Without the secret, maintenance should skip signed entries instead of pruning them as corrupt.
 

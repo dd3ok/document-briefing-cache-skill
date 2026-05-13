@@ -41,3 +41,22 @@ def test_readme_documents_local_path_and_url_metadata_boundary():
     assert "URL-bearing metadata" in readme
     assert "URL-bearing metadata" in skill
     assert "file paths, URLs" not in skill.split("---", 2)[1]
+
+
+def test_readme_documents_redaction_scope_and_security_limits():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+    best_practices = (ROOT / "references" / "best-practices.md").read_text(encoding="utf-8")
+    combined = "\n".join([readme, skill, best_practices])
+
+    assert "basic-contact-v1" in combined
+    assert "email" in combined
+    assert "Korean mobile" in combined
+    assert "US phone" in combined
+    assert "not a complete PII detector" in combined
+    assert "--cache-policy ephemeral" in combined
+    assert "--no-output-cache" in combined
+    assert "encrypted storage" in combined
+    assert "tmpfs" in combined
+    assert "tamper detection only" in combined
+    assert "not encryption" in combined

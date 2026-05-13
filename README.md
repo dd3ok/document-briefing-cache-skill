@@ -191,9 +191,11 @@ python -m document_briefing_cache.cli run \
   --cache-hmac-secret-env DBC_CACHE_HMAC_SECRET
 ```
 
-`--redact-pii` applies the built-in `basic-contact-v1` redaction profile before cache misses are summarized, and redacted/non-redacted cache keys are separated. The current profile covers common email addresses, Korean mobile numbers, and US phone numbers.
+For sensitive documents, the safe default is no persistent cache: use `--cache-policy ephemeral --no-output-cache --redact-pii` and add `--delete-on-exit created` when temporary cache files should be removed after the run.
 
-`--cache-hmac-secret-env` signs cache envelopes with HMAC-SHA256 using the named environment variable. Signed caches fail closed when the secret is missing and reject payload or expiry metadata tampering. This is integrity protection, not encryption.
+`--redact-pii` applies the built-in `basic-contact-v1` redaction profile before cache misses are summarized, and redacted/non-redacted cache keys are separated. The current profile covers common email addresses, Korean mobile numbers, and US phone numbers. It is not a complete PII detector for names, addresses, national IDs, account numbers, cards, API keys, or access tokens.
+
+`--cache-hmac-secret-env` signs cache envelopes with HMAC-SHA256 using the named environment variable. Signed caches fail closed when the secret is missing and reject payload or expiry metadata tampering. HMAC signing is tamper detection only, not encryption. Use encrypted storage, tmpfs, or another encrypted backend when cache contents need confidentiality.
 
 Cache maintenance commands:
 
