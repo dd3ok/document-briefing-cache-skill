@@ -86,7 +86,20 @@ def run_main(argv: list[str] | None = None) -> int:
     return run_with_args(args)
 
 
+def is_http_url(value: str) -> bool:
+    lowered = value.lower()
+    return lowered.startswith("http://") or lowered.startswith("https://")
+
+
 def run_with_args(args: argparse.Namespace) -> int:
+    for input_path in args.input:
+        if is_http_url(input_path):
+            sys.stderr.write(
+                "URL fetching is not supported by --input. "
+                "Pass a local file path, or include source/url metadata inside a JSON/XML payload.\n"
+            )
+            return 2
+
     documents = []
     for input_path in args.input:
         documents.extend(load_path_to_documents(input_path))
