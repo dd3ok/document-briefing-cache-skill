@@ -5,7 +5,7 @@ Last verified: 2026-05-13
 Environment:
 
 - Python 3.14.4
-- Installed with `python3 -m pip install --user --break-system-packages -e ".[dev]"`
+- Source-tree validation used the local Python environment with pytest available.
 - Pytest capture used `TMPDIR=/tmp` so temp files are created on a POSIX filesystem.
 - Local `python3 -m build` was unavailable in this environment (`No module named build`).
 
@@ -27,10 +27,12 @@ Local artifact smoke requires the `build` module plus explicit virtual environme
 python3 -m build
 python3 -m venv /tmp/dbc-wheel-venv
 /tmp/dbc-wheel-venv/bin/python -m pip install dist/*.whl
+/tmp/dbc-wheel-venv/bin/python -m pip install pytest
 (cd /tmp && DBC_RUN_INSTALLED_SMOKE=1 /tmp/dbc-wheel-venv/bin/python -m pytest /path/to/repo/tests/test_distribution_smoke.py -q)
 
 python3 -m venv /tmp/dbc-sdist-venv
 /tmp/dbc-sdist-venv/bin/python -m pip install dist/*.tar.gz
+/tmp/dbc-sdist-venv/bin/python -m pip install pytest
 (cd /tmp && DBC_RUN_INSTALLED_SMOKE=1 /tmp/dbc-sdist-venv/bin/python -m pytest /path/to/repo/tests/test_distribution_smoke.py -q)
 ```
 
