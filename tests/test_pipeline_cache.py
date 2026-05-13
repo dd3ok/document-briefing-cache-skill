@@ -159,6 +159,17 @@ def test_empty_document_summary_does_not_require_impossible_summary_evidence(tmp
     assert summarizer2.calls == 0
 
 
+def test_empty_document_title_with_protected_values_does_not_fail_evidence_validation(tmp_path):
+    docs = [DocumentInput(document_id="empty-budget", title="Budget 2026 Plan", text="")]
+
+    result = BriefingPipeline(cache_dir=tmp_path, summarizer=CountingSummarizer()).run(docs, use_output_cache=False)
+
+    assert result.stats.evidence_validation_errors == 0
+    assert result.stats.document_cache_misses == 1
+    assert "Document text is empty after normalization." in result.summaries[0].unknowns
+    assert list((tmp_path / "document_summaries").glob("*.json"))
+
+
 def test_old_skill_version_cached_summary_missing_evidence_is_cache_miss(tmp_path):
     doc = DocumentInput(document_id="stale", title="Stale", text="Decision: proceed.")
     fingerprint = document_content_fingerprint(doc)

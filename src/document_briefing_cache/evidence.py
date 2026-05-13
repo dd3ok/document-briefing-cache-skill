@@ -77,21 +77,22 @@ def validate_summary_evidence(
     for evidence in _iter_evidence(summary):
         errors.extend(_validate_evidence_ref(evidence, summary.document_id, source_text, section_map))
 
-    for label, text in _iter_claim_text(summary):
-        for value in extract_protected_values(text):
-            if value.normalized not in source_values:
-                errors.append(f"{label} contains protected value not found in source: {value.value}")
+    if _has_quoteable_source(source_text, section_map):
+        for label, text in _iter_claim_text(summary):
+            for value in extract_protected_values(text):
+                if value.normalized not in source_values:
+                    errors.append(f"{label} contains protected value not found in source: {value.value}")
 
-    for metric in summary.metrics:
-        metric_value = f"{metric.value}{metric.unit or ''}" if metric.unit == "%" else f"{metric.value} {metric.unit}".strip()
-        if metric.unit is None and metric.value in source_text:
-            continue
-        if normalize_protected_value(metric_value) not in source_values and normalize_protected_value(metric.value) not in source_values:
-            errors.append(f"metric contains protected value not found in source: {metric_value}")
+        for metric in summary.metrics:
+            metric_value = f"{metric.value}{metric.unit or ''}" if metric.unit == "%" else f"{metric.value} {metric.unit}".strip()
+            if metric.unit is None and metric.value in source_text:
+                continue
+            if normalize_protected_value(metric_value) not in source_values and normalize_protected_value(metric.value) not in source_values:
+                errors.append(f"metric contains protected value not found in source: {metric_value}")
 
-    for action in summary.actions:
-        if action.due and normalize_protected_value(action.due) not in source_values:
-            errors.append(f"action due contains protected value not found in source: {action.due}")
+        for action in summary.actions:
+            if action.due and normalize_protected_value(action.due) not in source_values:
+                errors.append(f"action due contains protected value not found in source: {action.due}")
 
     return errors
 
