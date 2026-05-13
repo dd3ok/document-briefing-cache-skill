@@ -103,6 +103,12 @@ pip install -e ".[llm]"  # OpenAI-backed structured summarizer
 pip install -e ".[pdf]"  # PDF text extraction helpers
 ```
 
+## Input scope
+
+The CLI `--input` option currently accepts local file paths. It does not fetch URLs such as `http://` or `https://`.
+
+URL-bearing metadata inside JSON, XML, HTML, or `DocumentInput.source` is preserved as source/reference metadata for evidence and rendering. To summarize remote content, fetch it outside this tool and pass the saved local file or normalized payload.
+
 ## Validate
 
 ```bash

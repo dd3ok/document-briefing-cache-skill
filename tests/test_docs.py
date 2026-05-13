@@ -29,3 +29,15 @@ def test_agents_documents_sensitive_cache_defaults():
     assert "no output cache" in agents
     assert "PII redaction" in agents
     assert "HMAC" in agents
+
+
+def test_readme_documents_local_path_and_url_metadata_boundary():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+
+    assert "--input" in readme
+    assert "local file path" in readme
+    assert "does not fetch URLs" in readme
+    assert "URL-bearing metadata" in readme
+    assert "URL-bearing metadata" in skill
+    assert "file paths, URLs" not in skill.split("---", 2)[1]

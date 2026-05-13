@@ -1,6 +1,6 @@
 ---
 name: document-briefing-cache
-description: Use when the user supplies document-like content, file paths, URLs, JSON/XML/API payloads, notes, logs, emails, tickets, reports, or transcripts and asks to summarize, brief, digest, recap, or rerender them from cached structured state. Do not use for source-code review/debugging, live research/current-fact lookup, general writing, translation-only edits, simple Q&A, or analysis where there is no cacheable document briefing or template rerendering.
+description: Use when the user supplies document-like content, local file paths, URL-bearing metadata/source references, JSON/XML/API payloads, notes, logs, emails, tickets, reports, or transcripts and asks to summarize, brief, digest, recap, or rerender them from cached structured state. Do not use for source-code review/debugging, live research/current-fact lookup, general writing, translation-only edits, simple Q&A, or analysis where there is no cacheable document briefing or template rerendering.
 ---
 
 # Document Briefing Cache Skill
