@@ -12,7 +12,7 @@ from .hashing import (
     stable_document_id,
 )
 from .models import CacheConfig, DocumentInput, DocumentSummaryState, PipelineResult, PipelineStats
-from .normalize import split_into_sections
+from .normalize import NORMALIZATION_UNKNOWNS_KEY, split_into_sections
 from .privacy import redact_document_input, redaction_policy_id
 from .render import TEMPLATE_VERSION, render_briefing
 from .summarizers import BaseSummarizer, RuleBasedExtractiveSummarizer
@@ -59,6 +59,9 @@ class BriefingPipeline:
             stats.bytes_pruned += pruned.bytes_deleted
 
         effective_output_cache = self.cache_config.output_cache if use_output_cache is None else use_output_cache
+        has_normalization_unknowns = any(self._normalization_unknowns(document) for document in documents)
+        if has_normalization_unknowns:
+            effective_output_cache = False
         can_read = self.cache_config.policy not in {"bypass", "refresh", "ephemeral"}
         can_write = self.cache_config.policy not in {"bypass", "read_only", "ephemeral"}
         privacy_profile = redaction_policy_id(self.cache_config.redact_pii)
@@ -110,6 +113,7 @@ class BriefingPipeline:
                         cached = None
                     else:
                         stats.document_cache_hits += 1
+                        self._merge_normalization_unknowns(cached, summary_document)
                         summaries.append(cached)
                         continue
                 if status == "corrupt":
@@ -121,11 +125,7 @@ class BriefingPipeline:
                 sections = split_into_sections(summary_document.text or "")
                 summary = self.summarizer.summarize(summary_document, sections, fingerprint)
                 stats.summarizer_calls += 1
-                normalization_unknowns = summary_document.metadata.get("normalization_unknowns", [])
-                if isinstance(normalization_unknowns, list):
-                    for unknown in normalization_unknowns:
-                        if isinstance(unknown, str) and unknown not in summary.unknowns:
-                            summary.unknowns.append(unknown)
+                self._merge_normalization_unknowns(summary, summary_document)
                 validation_errors = []
                 if self.cache_config.validate_evidence:
                     validation_errors = validate_summary_evidence(summary, summary_document.text or "", sections=sections, raw=summary_document.raw)
@@ -204,3 +204,14 @@ class BriefingPipeline:
             and summary.content_fingerprint == fingerprint
             and summary.summarizer_id == self.summarizer.summarizer_id
         )
+
+    def _merge_normalization_unknowns(self, summary: DocumentSummaryState, document: DocumentInput) -> None:
+        for unknown in self._normalization_unknowns(document):
+            if unknown not in summary.unknowns:
+                summary.unknowns.append(unknown)
+
+    def _normalization_unknowns(self, document: DocumentInput) -> list[str]:
+        normalization_unknowns = document.metadata.get(NORMALIZATION_UNKNOWNS_KEY, [])
+        if not isinstance(normalization_unknowns, list):
+            return []
+        return [unknown for unknown in normalization_unknowns if isinstance(unknown, str)]

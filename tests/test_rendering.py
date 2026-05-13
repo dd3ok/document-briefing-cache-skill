@@ -24,6 +24,20 @@ def test_debug_template_shows_cache_stats(tmp_path):
     assert "summarizer_calls" in result.output
 
 
+def test_debug_template_shows_unknowns(tmp_path):
+    docs = [
+        DocumentInput(
+            document_id="x",
+            title="X",
+            text="Hello 123",
+            metadata={"normalization_unknowns": ["Unsupported payload type: object"]},
+        )
+    ]
+    result = BriefingPipeline(cache_dir=tmp_path).run(docs, mode="debug", use_output_cache=False)
+
+    assert "Unsupported payload type: object" in result.output
+
+
 def test_rendering_escapes_untrusted_markdown_html(tmp_path):
     docs = [
         DocumentInput(

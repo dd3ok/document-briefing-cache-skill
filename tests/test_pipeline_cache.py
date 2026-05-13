@@ -79,3 +79,38 @@ def test_pipeline_copies_normalization_unknowns_to_summary_unknowns(tmp_path):
     result = BriefingPipeline(cache_dir=tmp_path).run(docs, mode="debug", use_output_cache=False)
 
     assert "Unsupported payload type: object" in result.summaries[0].unknowns
+
+
+def test_cached_summary_preserves_normalization_unknowns(tmp_path):
+    base_doc = DocumentInput(document_id="opaque", title="Opaque", text="Some fallback text.")
+    pipeline1 = BriefingPipeline(cache_dir=tmp_path)
+    pipeline1.run([base_doc], mode="debug", use_output_cache=False)
+
+    doc_with_unknowns = DocumentInput(
+        document_id="opaque",
+        title="Opaque",
+        text="Some fallback text.",
+        metadata={"normalization_unknowns": ["Unsupported payload type: object"]},
+    )
+    result = BriefingPipeline(cache_dir=tmp_path).run([doc_with_unknowns], mode="debug", use_output_cache=False)
+
+    assert result.stats.document_cache_hits == 1
+    assert "Unsupported payload type: object" in result.summaries[0].unknowns
+
+
+def test_output_cache_does_not_hide_normalization_unknowns(tmp_path):
+    base_doc = DocumentInput(document_id="opaque", title="Opaque", text="Some fallback text.")
+    pipeline1 = BriefingPipeline(cache_dir=tmp_path)
+    first = pipeline1.run([base_doc], mode="debug", use_output_cache=True)
+    assert first.stats.output_cache_hit is False
+
+    doc_with_unknowns = DocumentInput(
+        document_id="opaque",
+        title="Opaque",
+        text="Some fallback text.",
+        metadata={"normalization_unknowns": ["Unsupported payload type: object"]},
+    )
+    result = BriefingPipeline(cache_dir=tmp_path).run([doc_with_unknowns], mode="debug", use_output_cache=True)
+
+    assert result.stats.output_cache_hit is False
+    assert "Unsupported payload type: object" in result.output
