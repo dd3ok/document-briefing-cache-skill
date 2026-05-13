@@ -37,8 +37,8 @@ python3 -m venv /tmp/dbc-sdist-venv
 Observed result:
 
 ```text
-75 passed, 1 skipped in 0.42s
-OK: document briefing cache skill repository validated (16 test files, 6 eval cases, 9 trigger cases, 4 model benchmark cases)
+103 passed, 1 skipped
+OK: document briefing cache skill repository validated (18 test files, 6 eval cases, 9 trigger cases, 4 model benchmark cases)
 tests/test_distribution_smoke.py: 1 skipped
 python3 -m build --version: No module named build
 ```
