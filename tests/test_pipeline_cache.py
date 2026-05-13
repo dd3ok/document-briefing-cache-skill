@@ -64,3 +64,18 @@ def test_adding_one_document_summarizes_only_new_document(tmp_path):
     assert result.stats.document_cache_hits == 2
     assert result.stats.document_cache_misses == 1
     assert result.stats.summarizer_calls == 1
+
+
+def test_pipeline_copies_normalization_unknowns_to_summary_unknowns(tmp_path):
+    docs = [
+        DocumentInput(
+            document_id="opaque",
+            title="Opaque",
+            text="Some fallback text.",
+            metadata={"normalization_unknowns": ["Unsupported payload type: object"]},
+        )
+    ]
+
+    result = BriefingPipeline(cache_dir=tmp_path).run(docs, mode="debug", use_output_cache=False)
+
+    assert "Unsupported payload type: object" in result.summaries[0].unknowns

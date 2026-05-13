@@ -14,6 +14,11 @@ TEXT_KEYS = ("text", "body", "content", "description", "summary", "notes", "mess
 TITLE_KEYS = ("title", "name", "subject", "headline")
 SOURCE_KEYS = ("source", "url", "link", "path")
 ID_KEYS = ("id", "document_id", "doc_id", "uuid", "url")
+NORMALIZATION_UNKNOWNS_KEY = "normalization_unknowns"
+
+
+def normalization_unknown(message: str) -> dict[str, list[str]]:
+    return {NORMALIZATION_UNKNOWNS_KEY: [message]}
 
 
 def read_file(path: str | Path) -> str:
@@ -97,7 +102,15 @@ def normalize_payload(
     if isinstance(payload, (dict, list)):
         return normalize_json_object(payload, source=source)
 
-    return [DocumentInput(source=source, content_format=ContentFormat.text, text=str(payload), doc_type=DocumentType.unknown)]
+    return [
+        DocumentInput(
+            source=source,
+            content_format=ContentFormat.text,
+            text=str(payload),
+            doc_type=DocumentType.unknown,
+            metadata=normalization_unknown(f"Unsupported payload type: {type(payload).__name__}"),
+        )
+    ]
 
 
 def guess_format_from_string(text: str) -> ContentFormat:

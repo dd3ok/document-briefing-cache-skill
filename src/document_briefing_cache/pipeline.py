@@ -121,6 +121,11 @@ class BriefingPipeline:
                 sections = split_into_sections(summary_document.text or "")
                 summary = self.summarizer.summarize(summary_document, sections, fingerprint)
                 stats.summarizer_calls += 1
+                normalization_unknowns = summary_document.metadata.get("normalization_unknowns", [])
+                if isinstance(normalization_unknowns, list):
+                    for unknown in normalization_unknowns:
+                        if isinstance(unknown, str) and unknown not in summary.unknowns:
+                            summary.unknowns.append(unknown)
                 validation_errors = []
                 if self.cache_config.validate_evidence:
                     validation_errors = validate_summary_evidence(summary, summary_document.text or "", sections=sections, raw=summary_document.raw)

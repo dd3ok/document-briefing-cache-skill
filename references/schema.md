@@ -48,3 +48,7 @@
 Do not store only the final natural-language paragraph. Store this state, then render paragraphs from it.
 
 `review_comments` means exported review feedback, PR discussion, or comment-thread documents. It does not mean performing source-code review or debugging source code.
+
+## Normalization Unknowns
+
+When an input is accepted through a fallback path, normalizers should preserve the text representation and add `DocumentInput.metadata.normalization_unknowns` as a list of human-readable uncertainty strings. The pipeline copies these values into `DocumentSummaryState.unknowns` on cache misses so rendered output can expose normalization caveats.

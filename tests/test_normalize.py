@@ -39,3 +39,21 @@ def test_sections_split_on_markdown_headings():
     assert len(sections) == 2
     assert sections[0].heading == "One"
     assert sections[1].heading == "Two"
+
+
+def test_url_fields_are_preserved_as_source_metadata_without_fetching():
+    docs = normalize_payload(
+        {"documents": [{"id": "u1", "title": "Remote Copy", "url": "https://example.com/report", "content": "Decision: keep local copy."}]}
+    )
+
+    assert docs[0].source == "https://example.com/report"
+    assert docs[0].metadata["url"] == "https://example.com/report"
+    assert "keep local copy" in docs[0].text
+
+
+def test_unknown_payload_records_normalization_unknowns_metadata():
+    docs = normalize_payload(object(), source="opaque")
+
+    assert docs[0].source == "opaque"
+    assert docs[0].metadata["normalization_unknowns"]
+    assert "Unsupported payload type" in docs[0].metadata["normalization_unknowns"][0]
