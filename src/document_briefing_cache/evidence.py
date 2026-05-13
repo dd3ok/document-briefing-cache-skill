@@ -51,6 +51,22 @@ def validate_summary_evidence(
     source_values = {value.normalized: value.value for value in extract_protected_values(source_text, raw=raw)}
     section_map = {section.section_id: section.text for section in sections or []}
 
+    for idx, point in enumerate(summary.key_points):
+        if point.text and not _has_source_evidence(point.evidence):
+            errors.append(f"key point evidence is required: {idx}")
+    for idx, decision in enumerate(summary.decisions):
+        if decision.text and not _has_source_evidence(decision.evidence):
+            errors.append(f"decision evidence is required: {idx}")
+    for idx, action in enumerate(summary.actions):
+        if action.action and not _has_source_evidence(action.evidence):
+            errors.append(f"action evidence is required: {idx}")
+    for idx, risk in enumerate(summary.risks):
+        if risk.title and not _has_source_evidence(risk.evidence):
+            errors.append(f"risk evidence is required: {idx}")
+    for idx, metric in enumerate(summary.metrics):
+        if metric.value and not _has_source_evidence(metric.evidence):
+            errors.append(f"metric evidence is required: {idx}")
+
     for evidence in _iter_evidence(summary):
         errors.extend(_validate_evidence_ref(evidence, summary.document_id, source_text, section_map))
 
@@ -71,6 +87,10 @@ def validate_summary_evidence(
             errors.append(f"action due contains protected value not found in source: {action.due}")
 
     return errors
+
+
+def _has_source_evidence(evidence_refs: list[EvidenceRef]) -> bool:
+    return any(bool(ref.quote) for ref in evidence_refs)
 
 
 def _extract_from_text(text: str, path: str | None = None) -> list[ProtectedValue]:

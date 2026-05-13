@@ -1,6 +1,6 @@
-from document_briefing_cache.models import DocumentInput
+from document_briefing_cache.models import DocumentInput, DocumentSummaryState, KeyPoint
 from document_briefing_cache.pipeline import BriefingPipeline
-from document_briefing_cache.summarizers import RuleBasedExtractiveSummarizer
+from document_briefing_cache.summarizers import BaseSummarizer, RuleBasedExtractiveSummarizer
 
 
 class CountingSummarizer(RuleBasedExtractiveSummarizer):
@@ -12,6 +12,19 @@ class CountingSummarizer(RuleBasedExtractiveSummarizer):
     def summarize(self, document, sections, content_fingerprint):
         self.calls += 1
         return super().summarize(document, sections, content_fingerprint)
+
+
+class MissingEvidenceSummarizer(BaseSummarizer):
+    summarizer_id = "missing-evidence-v1"
+
+    def summarize(self, document, sections, content_fingerprint):
+        return DocumentSummaryState(
+            document_id=document.document_id or content_fingerprint[:16],
+            content_fingerprint=content_fingerprint,
+            summary="Unsupported item.",
+            key_points=[KeyPoint(text="Unsupported item.")],
+            summarizer_id=self.summarizer_id,
+        )
 
 
 def sample_docs():
@@ -114,3 +127,13 @@ def test_output_cache_does_not_hide_normalization_unknowns(tmp_path):
 
     assert result.stats.output_cache_hit is False
     assert "Unsupported payload type: object" in result.output
+
+
+def test_validation_errors_prevent_document_cache_write(tmp_path):
+    docs = [DocumentInput(document_id="bad", title="Bad", text="Source text.")]
+    pipeline = BriefingPipeline(cache_dir=tmp_path, summarizer=MissingEvidenceSummarizer())
+
+    result = pipeline.run(docs, use_output_cache=False)
+
+    assert result.stats.evidence_validation_errors > 0
+    assert list((tmp_path / "document_summaries").glob("*.json")) == []

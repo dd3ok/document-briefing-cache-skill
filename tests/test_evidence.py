@@ -1,9 +1,11 @@
 from document_briefing_cache.evidence import extract_protected_values, validate_summary_evidence
 from document_briefing_cache.models import (
     ActionItem,
+    Decision,
     DocumentSection,
     DocumentSummaryState,
     EvidenceRef,
+    KeyPoint,
     Metric,
     Risk,
     SectionDigest,
@@ -177,3 +179,30 @@ def test_validate_summary_checks_owner_risk_reason_questions_and_section_digest(
     assert any("2026-05-08" in error for error in errors)
     assert any("Park Joon" in error for error in errors)
     assert any("13" in error for error in errors)
+
+
+def test_validate_summary_requires_evidence_for_existing_source_backed_items():
+    source = "Decision: proceed. Action: Backend should patch. Risk: delay. Metric: 2.4%."
+    summary = DocumentSummaryState(
+        document_id="doc",
+        content_fingerprint="abc",
+        key_points=[KeyPoint(text="Decision: proceed.")],
+        decisions=[Decision(text="Decision: proceed.")],
+        actions=[ActionItem(action="Backend should patch.")],
+        risks=[Risk(title="Risk: delay.")],
+        metrics=[Metric(name="error_rate", value="2.4", unit="%")],
+    )
+
+    errors = validate_summary_evidence(summary, source)
+
+    assert any("key point evidence is required" in error for error in errors)
+    assert any("decision evidence is required" in error for error in errors)
+    assert any("action evidence is required" in error for error in errors)
+    assert any("risk evidence is required" in error for error in errors)
+    assert any("metric evidence is required" in error for error in errors)
+
+
+def test_validate_summary_allows_empty_claim_lists_without_evidence():
+    summary = DocumentSummaryState(document_id="doc", content_fingerprint="abc", summary="Plain overview.")
+
+    assert validate_summary_evidence(summary, "Plain overview.") == []
