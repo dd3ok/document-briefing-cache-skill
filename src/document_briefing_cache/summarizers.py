@@ -223,6 +223,7 @@ def strict_json_schema(schema: dict) -> dict:
 
 def _normalize_strict_json_schema(node):
     if isinstance(node, dict):
+        node.pop("default", None)
         properties = node.get("properties")
         if isinstance(properties, dict):
             node["additionalProperties"] = False

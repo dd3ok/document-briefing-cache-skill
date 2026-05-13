@@ -65,6 +65,17 @@ def object_schemas(schema, path="$"):
             yield from object_schemas(value, f"{path}[{idx}]")
 
 
+def default_paths(schema, path="$"):
+    if isinstance(schema, dict):
+        if "default" in schema:
+            yield path
+        for key, value in schema.items():
+            yield from default_paths(value, f"{path}.{key}")
+    elif isinstance(schema, list):
+        for idx, value in enumerate(schema):
+            yield from default_paths(value, f"{path}[{idx}]")
+
+
 def test_openai_structured_summarizer_requests_json_schema_and_validates_state():
     expected = expected_structured_payload()
     client = FakeClient(json.dumps(expected))
@@ -107,6 +118,7 @@ def test_openai_structured_schema_is_strict_compatible():
     assert "summary_evidence" in schema["required"]
     assert "evidence" in schema["$defs"]["SectionDigest"]["properties"]
     assert "evidence" in schema["$defs"]["SectionDigest"]["required"]
+    assert list(default_paths(schema)) == []
 
 
 def test_openai_structured_summarizer_default_prompt_version_reflects_evidence_contract():
