@@ -58,17 +58,17 @@ class RuleBasedExtractiveSummarizer(BaseSummarizer):
     ) -> DocumentSummaryState:
         doc_id = stable_document_id(document, content_fingerprint)
         text = "\n\n".join(section.text for section in sections) if sections else (document.text or "")
-        sentences = split_sentences(text)
+        sentences = split_section_sentences(sections, text)
         language = detect_language(text)
 
         summary_sentences = select_summary_sentences(sentences, limit=2)
-        fallback_summary = fallback_source_quote(text)
+        fallback_summary, fallback_section = fallback_source_quote(sections, text)
         if summary_sentences:
             summary = " ".join(summary_sentences)
             summary_evidence = [evidence(doc_id, find_section_for_sentence(sections, summary_sentences[0]), document.source, summary_sentences[0])]
         elif fallback_summary:
             summary = fallback_summary
-            summary_evidence = [evidence(doc_id, find_section_for_sentence(sections, fallback_summary), document.source, fallback_summary)]
+            summary_evidence = [evidence(doc_id, fallback_section, document.source, fallback_summary)]
         else:
             summary = document.title or "No summary available."
             summary_evidence = []
@@ -302,6 +302,12 @@ def split_sentences(text: str) -> list[str]:
     return [part.strip() for part in parts if len(part.strip()) > 3]
 
 
+def split_section_sentences(sections: list[DocumentSection], text: str) -> list[str]:
+    if not sections:
+        return split_sentences(text)
+    return [sentence for section in sections for sentence in split_sentences(section.text)]
+
+
 def select_summary_sentences(sentences: list[str], limit: int) -> list[str]:
     scored = []
     for idx, sentence in enumerate(sentences):
@@ -319,8 +325,12 @@ def select_summary_sentences(sentences: list[str], limit: int) -> list[str]:
     return [item[2] for item in selected]
 
 
-def fallback_source_quote(text: str) -> str:
-    return re.sub(r"\s+", " ", text or "").strip()[:240]
+def fallback_source_quote(sections: list[DocumentSection], text: str) -> tuple[str, DocumentSection | None]:
+    for section in sections:
+        quote = re.sub(r"\s+", " ", section.text or "").strip()[:240]
+        if quote:
+            return quote, section
+    return re.sub(r"\s+", " ", text or "").strip()[:240], None
 
 
 def contains_any(text: str, keywords: tuple[str, ...]) -> bool:
