@@ -35,7 +35,7 @@ def chunk_sections_by_budget(sections: list[DocumentSection], config: LLMConfig)
     current_tokens = 0
     max_input_tokens = max(1, config.max_input_tokens)
 
-    for section in sections:
+    for section in _split_oversized_sections(sections, max_input_tokens):
         section_tokens = estimate_tokens(section.text)
         if current and current_tokens + section_tokens > max_input_tokens:
             chunks.append(current)
@@ -44,14 +44,30 @@ def chunk_sections_by_budget(sections: list[DocumentSection], config: LLMConfig)
         current.append(section)
         current_tokens += section_tokens
 
-        if section_tokens > max_input_tokens:
-            chunks.append(current)
-            current = []
-            current_tokens = 0
-
     if current:
         chunks.append(current)
     return chunks
+
+
+def _split_oversized_sections(sections: list[DocumentSection], max_input_tokens: int) -> list[DocumentSection]:
+    max_chars = max(1, max_input_tokens * 4)
+    split_sections: list[DocumentSection] = []
+    for section in sections:
+        if estimate_tokens(section.text) <= max_input_tokens:
+            split_sections.append(section)
+            continue
+        for offset in range(0, len(section.text), max_chars):
+            text = section.text[offset:offset + max_chars]
+            split_sections.append(
+                DocumentSection(
+                    section_id=section.section_id,
+                    order=section.order,
+                    text=text,
+                    heading=section.heading,
+                    char_count=len(text),
+                )
+            )
+    return split_sections
 
 
 def merge_document_states(partials: list[DocumentSummaryState]) -> DocumentSummaryState:

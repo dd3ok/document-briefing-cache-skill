@@ -19,7 +19,7 @@ Send one document at a time where possible:
 }
 ```
 
-Large documents may be sent as multiple section batches for the same document. The adapter estimates input tokens deterministically from text length, groups whole sections up to the configured budget, and never splits a single section. If one section exceeds the budget, it is sent alone so section IDs and evidence references remain stable.
+Large documents may be sent as multiple section batches for the same document. The adapter estimates input tokens deterministically from text length and groups sections up to the configured budget. If one section exceeds the budget, it is split into smaller text parts that keep the original `section_id` so evidence references still validate against the source section.
 
 ## Required output
 

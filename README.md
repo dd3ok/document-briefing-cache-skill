@@ -235,7 +235,7 @@ OPENAI_API_KEY="..." python -m document_briefing_cache.cli run \
   --show-stats
 ```
 
-When a document exceeds the input budget, the OpenAI adapter summarizes whole-section chunks and merges the structured states before writing the document summary cache. Transient provider failures, including rate limits, server errors, timeouts, and connection-style failures, are retried with exponential backoff; structured-output contract failures are not retried.
+When a document exceeds the input budget, the OpenAI adapter summarizes section-based chunks and merges the structured states before writing the document summary cache. Oversized sections are split into smaller text parts while preserving the original section ID for evidence validation. Transient provider failures, including rate limits, server errors, timeouts, and connection-style failures, are retried with exponential backoff; structured-output contract failures are not retried.
 
 Privacy note: `rules` mode is local and token-free. LLM-backed summarizers send cache misses to the configured provider, such as OpenAI, and require the relevant API key. Cache directories are plaintext JSON and may persist structured summaries, names, IDs, dates, metrics, evidence quotes, sources, and rendered outputs. HMAC detects tampering but does not hide contents. Keep `.cache/` out of git, use encrypted storage or tmpfs when needed, and use `ephemeral`, `--redact-pii`, or explicit cache clearing for sensitive documents.
 
