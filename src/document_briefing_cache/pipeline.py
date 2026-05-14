@@ -113,8 +113,7 @@ class BriefingPipeline:
                         cached = None
                     else:
                         stats.document_cache_hits += 1
-                        self._merge_normalization_unknowns(cached, summary_document)
-                        summaries.append(cached)
+                        summaries.append(self._summary_with_normalization_unknowns(cached, summary_document))
                         continue
                 if status == "corrupt":
                     stats.document_cache_corrupt += 1
@@ -125,7 +124,6 @@ class BriefingPipeline:
                 sections = split_into_sections(summary_document.text or "")
                 summary = self.summarizer.summarize(summary_document, sections, fingerprint)
                 stats.summarizer_calls += 1
-                self._merge_normalization_unknowns(summary, summary_document)
                 validation_errors = []
                 if self.cache_config.validate_evidence:
                     validation_errors = validate_summary_evidence(summary, summary_document.text or "", sections=sections, raw=summary_document.raw)
@@ -135,7 +133,7 @@ class BriefingPipeline:
                         summary.unknowns.extend(f"Evidence validation: {error}" for error in validation_errors)
                 if self.cache_config.document_cache and can_write and not validation_errors:
                     self.document_cache.set_model(summary_key, summary, ttl_seconds=self._document_ttl_seconds())
-                summaries.append(summary)
+                summaries.append(self._summary_with_normalization_unknowns(summary, summary_document))
 
             output = render_briefing(
                 summaries,
@@ -205,10 +203,15 @@ class BriefingPipeline:
             and summary.summarizer_id == self.summarizer.summarizer_id
         )
 
-    def _merge_normalization_unknowns(self, summary: DocumentSummaryState, document: DocumentInput) -> None:
-        for unknown in self._normalization_unknowns(document):
-            if unknown not in summary.unknowns:
-                summary.unknowns.append(unknown)
+    def _summary_with_normalization_unknowns(self, summary: DocumentSummaryState, document: DocumentInput) -> DocumentSummaryState:
+        normalization_unknowns = self._normalization_unknowns(document)
+        if not normalization_unknowns:
+            return summary
+        run_summary = summary.model_copy(deep=True)
+        for unknown in normalization_unknowns:
+            if unknown not in run_summary.unknowns:
+                run_summary.unknowns.append(unknown)
+        return run_summary
 
     def _normalization_unknowns(self, document: DocumentInput) -> list[str]:
         normalization_unknowns = document.metadata.get(NORMALIZATION_UNKNOWNS_KEY, [])
