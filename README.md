@@ -1,28 +1,32 @@
 # Document Briefing Cache Skill
 
-A lightweight skill repository for turning broad documents into reusable structured briefings.
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
+[![License](https://img.shields.io/github/license/dd3ok/document-briefing-cache-skill)](https://github.com/dd3ok/document-briefing-cache-skill/blob/main/LICENSE)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/dd3ok/document-briefing-cache-skill/ci.yml?branch=main)](https://github.com/dd3ok/document-briefing-cache-skill/actions/workflows/ci.yml)
 
-It is designed for this workflow:
+`document-briefing-cache-skill`은 **AI 에이전트 워크플로우(AI Agent Workflow)**에서 **LLM 토큰 최적화(LLM Token Optimization)**를 위해 설계된 경량 스킬 리포지토리입니다. 방대한 문서를 재사용 가능한 구조화된 브리핑으로 변환하고 캐싱하여, 중복되는 **LLM 호출(LLM Calls)**을 줄이고 **컨텍스트 윈도우 관리(Context Window Management)**를 효율화합니다. 문서의 디지털 지문(fingerprint)을 기반으로 캐시를 관리하여, 한 번 요약된 내용은 포맷 변환이나 반복 요청 시 LLM을 다시 호출할 필요 없이 재사용됩니다. 이는 특히 **LLM 기반 애플리케이션(LLM-powered applications)**의 비용 효율성과 응답 속도를 크게 향상시키는 데 기여합니다.
+
+이 스킬은 다음과 같은 워크플로우를 위해 설계되었습니다:
 
 ```text
-Document / JSON / XML / HTML / Markdown / notes / logs / reports
+문서 / JSON / XML / HTML / Markdown / 노트 / 로그 / 보고서
         ↓
-Normalize to DocumentInput
+DocumentInput으로 정규화
         ↓
-Compute document fingerprint
+문서 지문(fingerprint) 계산
         ↓
-Reuse cached DocumentSummaryState if available
+캐시된 DocumentSummaryState 재사용 (가능한 경우)
         ↓
-Summarize only cache misses
+캐시 미스(cache misses)만 요약
         ↓
-Render with templates
+템플릿으로 렌더링
 ```
 
-The goal is not to make LLM usage disappear for every new document. The goal is to spend LLM tokens only when semantic understanding is actually required, then reuse the structured result for every future briefing, format conversion, or repeated request.
+목표는 새로운 문서마다 LLM 사용을 없애는 것이 아닙니다. 의미론적 이해가 실제로 필요할 때만 LLM 토큰을 사용하고, 구조화된 결과를 향후 모든 브리핑, 형식 변환 또는 반복 요청에 재사용하는 것입니다.
 
 ## What this solves
 
-Typical summarization pipelines call an LLM every time the user asks:
+일반적인 요약 파이프라인은 사용자가 요청할 때마다 LLM을 호출합니다:
 
 ```text
 "요약해줘" → LLM
@@ -31,14 +35,14 @@ Typical summarization pipelines call an LLM every time the user asks:
 "다시 요약해줘" → LLM
 ```
 
-This skill changes the pipeline to:
+이 스킬은 파이프라인을 다음과 같이 변경합니다:
 
 ```text
-First time for a changed document → summarize into DocumentSummaryState
-Repeated request → cache hit
-Format change → template render
-Different audience → template render when possible
-Only new document added → summarize only that document
+변경된 문서에 대한 첫 요청 → DocumentSummaryState로 요약
+반복 요청 → 캐시 히트
+형식 변경 → 템플릿 렌더링
+다른 대상 → 가능한 경우 템플릿 렌더링
+새 문서 추가 → 해당 문서만 요약
 ```
 
 ## Repository layout
