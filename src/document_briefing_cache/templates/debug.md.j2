@@ -22,4 +22,10 @@
 - actions: {{ item.actions | length }}
 - risks: {{ item.risks | length }}
 - metrics: {{ item.metrics | length }}
+{% if item.unknowns %}
+- unknowns:
+{% for unknown in item.unknowns %}
+  - {{ unknown|md }}
+{% endfor %}
+{% endif %}
 {% endfor %}

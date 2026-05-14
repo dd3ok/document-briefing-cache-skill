@@ -1,27 +1,48 @@
 # Validation
 
-Last verified: 2026-05-11
+Last verified: 2026-05-14
 
 Environment:
 
 - Python 3.14.4
-- Installed with `python3 -m pip install --user --break-system-packages -e ".[dev]"`
+- Source-tree validation used the local Python environment with pytest available.
 - Pytest capture used `TMPDIR=/tmp` so temp files are created on a POSIX filesystem.
+- Local `python3 -m build` was unavailable in this environment (`No module named build`).
 
 Commands:
 
 ```bash
 TMPDIR=/tmp PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m pytest -q
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 scripts/validate_skill.py
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 scripts/validate_skill.py --run-evals
+TMPDIR=/tmp PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m pytest tests/test_distribution_smoke.py -q
+```
+
+`tests/test_distribution_smoke.py` is opt-in and skips unless `DBC_RUN_INSTALLED_SMOKE=1` is set. The default local command above confirms the skipped source-tree test is present; it does not by itself install or smoke-test built artifacts.
+
+CI performs wheel and sdist artifact install smoke validation by building distributions, installing each artifact into a fresh virtual environment, and running the renderer from `/tmp` so default templates must be loaded from packaged resources rather than repository-local files.
+
+Local artifact smoke requires the `build` module plus explicit virtual environment install commands. Example:
+
+```bash
+python3 -m build
+python3 -m venv /tmp/dbc-wheel-venv
+/tmp/dbc-wheel-venv/bin/python -m pip install dist/*.whl
+/tmp/dbc-wheel-venv/bin/python -m pip install pytest
+(cd /tmp && DBC_RUN_INSTALLED_SMOKE=1 /tmp/dbc-wheel-venv/bin/python -m pytest /path/to/repo/tests/test_distribution_smoke.py -q)
+
+python3 -m venv /tmp/dbc-sdist-venv
+/tmp/dbc-sdist-venv/bin/python -m pip install dist/*.tar.gz
+/tmp/dbc-sdist-venv/bin/python -m pip install pytest
+(cd /tmp && DBC_RUN_INSTALLED_SMOKE=1 /tmp/dbc-sdist-venv/bin/python -m pytest /path/to/repo/tests/test_distribution_smoke.py -q)
 ```
 
 Observed result:
 
 ```text
-73 passed in 0.36s
-OK: document briefing cache skill repository validated (14 test files, 6 eval cases, 9 trigger cases, 4 model benchmark cases)
-OK: document briefing cache skill repository validated (14 test files, 6 eval cases, 9 trigger cases, 4 model benchmark cases)
+110 passed, 1 skipped
+OK: document briefing cache skill repository validated (19 test files, 6 eval cases, 9 trigger cases, 4 model benchmark cases)
+tests/test_distribution_smoke.py: 1 skipped
+python3 -m build --version: No module named build
 ```
 
 Trigger evals are static boundary fixtures. They validate intended trigger coverage and near-miss cases, but they do not measure actual model-side invocation behavior.

@@ -1,7 +1,7 @@
 import json
 
 from document_briefing_cache.cache import JsonFileCache
-from document_briefing_cache.cli import main
+from document_briefing_cache.cli import build_run_parser, main
 
 
 def test_cli_cache_stats_prune_and_clear(tmp_path, capsys):
@@ -111,3 +111,32 @@ def test_cli_cache_prune_uses_hmac_secret_when_configured(tmp_path, capsys, monk
     payload = json.loads(capsys.readouterr().out)
     assert payload["entries_deleted"] == 1
     assert list((cache_dir / "document_summaries").glob("*.json")) == []
+
+
+def test_cli_run_parser_accepts_openai_llm_budget_flags():
+    parser = build_run_parser()
+
+    args = parser.parse_args(
+        [
+            "-i",
+            "docs.json",
+            "--summary-mode",
+            "openai",
+            "--openai-model",
+            "gpt-test",
+            "--llm-timeout",
+            "10.5",
+            "--llm-max-retries",
+            "4",
+            "--llm-max-input-tokens",
+            "2048",
+            "--llm-max-output-tokens",
+            "512",
+        ]
+    )
+
+    assert args.openai_model == "gpt-test"
+    assert args.llm_timeout == 10.5
+    assert args.llm_max_retries == 4
+    assert args.llm_max_input_tokens == 2048
+    assert args.llm_max_output_tokens == 512

@@ -7,14 +7,14 @@ from document_briefing_cache.pipeline import SKILL_VERSION
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_versions_are_synchronized_to_0_3_0():
+def test_versions_are_synchronized_to_0_3_1():
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     openai_yaml = (ROOT / "agents" / "openai.yaml").read_text(encoding="utf-8")
 
-    assert 'version = "0.3.0"' in pyproject
-    assert __version__ == "0.3.0"
-    assert SKILL_VERSION == "0.3.0"
-    assert 'version: "0.3.0"' in openai_yaml
+    assert 'version = "0.3.1"' in pyproject
+    assert __version__ == "0.3.1"
+    assert SKILL_VERSION == "0.3.1"
+    assert 'version: "0.3.1"' in openai_yaml
 
 
 def test_openai_yaml_uses_interface_metadata():

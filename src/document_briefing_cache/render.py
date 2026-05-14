@@ -4,14 +4,32 @@ import re
 from pathlib import Path
 from typing import Any
 
-from jinja2 import Environment, FileSystemLoader, StrictUndefined
+from jinja2 import Environment, FileSystemLoader, PackageLoader, StrictUndefined
 from markupsafe import escape
 
 from .models import DocumentSummaryState, PipelineStats
 
 
-DEFAULT_TEMPLATE_DIR = Path(__file__).resolve().parents[2] / "templates"
-TEMPLATE_VERSION = "templates-v0.1.0"
+DEFAULT_TEMPLATE_PACKAGE = "document_briefing_cache"
+DEFAULT_TEMPLATE_PATH = "templates"
+TEMPLATE_VERSION = "templates-v0.2.0"
+
+
+def _build_environment(template_dir: str | Path | None) -> Environment:
+    loader = (
+        FileSystemLoader(str(Path(template_dir)))
+        if template_dir is not None
+        else PackageLoader(DEFAULT_TEMPLATE_PACKAGE, DEFAULT_TEMPLATE_PATH)
+    )
+    env = Environment(
+        loader=loader,
+        autoescape=False,
+        trim_blocks=False,
+        lstrip_blocks=True,
+        undefined=StrictUndefined,
+    )
+    env.filters["md"] = markdown_inline_escape
+    return env
 
 
 def render_briefing(
@@ -22,17 +40,9 @@ def render_briefing(
     stats: PipelineStats | None = None,
     template_dir: str | Path | None = None,
 ) -> str:
-    template_dir = Path(template_dir) if template_dir else DEFAULT_TEMPLATE_DIR
-    env = Environment(
-        loader=FileSystemLoader(str(template_dir)),
-        autoescape=False,
-        trim_blocks=False,
-        lstrip_blocks=True,
-        undefined=StrictUndefined,
-    )
-    env.filters["md"] = markdown_inline_escape
+    env = _build_environment(template_dir)
     template_name = f"{mode}.md.j2"
-    available = {p.name for p in template_dir.glob("*.md.j2")}
+    available = set(env.list_templates(filter_func=lambda name: name.endswith(".md.j2")))
     if template_name not in available:
         raise ValueError(f"Unknown rendering mode '{mode}'. Available modes: {sorted(name[:-6] for name in available)}")
 

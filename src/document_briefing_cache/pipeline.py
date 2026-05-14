@@ -11,13 +11,13 @@ from .hashing import (
     output_cache_key,
     stable_document_id,
 )
-from .models import CacheConfig, DocumentInput, DocumentSummaryState, PipelineResult, PipelineStats
-from .normalize import split_into_sections
+from .models import DOCUMENT_SUMMARY_SCHEMA_VERSION, CacheConfig, DocumentInput, DocumentSummaryState, PipelineResult, PipelineStats
+from .normalize import NORMALIZATION_UNKNOWNS_KEY, split_into_sections
 from .privacy import redact_document_input, redaction_policy_id
 from .render import TEMPLATE_VERSION, render_briefing
 from .summarizers import BaseSummarizer, RuleBasedExtractiveSummarizer
 
-SKILL_VERSION = "0.3.0"
+SKILL_VERSION = "0.3.1"
 
 
 class BriefingPipeline:
@@ -59,6 +59,9 @@ class BriefingPipeline:
             stats.bytes_pruned += pruned.bytes_deleted
 
         effective_output_cache = self.cache_config.output_cache if use_output_cache is None else use_output_cache
+        has_normalization_unknowns = any(self._normalization_unknowns(document) for document in documents)
+        if has_normalization_unknowns:
+            effective_output_cache = False
         can_read = self.cache_config.policy not in {"bypass", "refresh", "ephemeral"}
         can_write = self.cache_config.policy not in {"bypass", "read_only", "ephemeral"}
         privacy_profile = redaction_policy_id(self.cache_config.redact_pii)
@@ -110,7 +113,7 @@ class BriefingPipeline:
                         cached = None
                     else:
                         stats.document_cache_hits += 1
-                        summaries.append(cached)
+                        summaries.append(self._summary_with_normalization_unknowns(cached, summary_document))
                         continue
                 if status == "corrupt":
                     stats.document_cache_corrupt += 1
@@ -130,7 +133,7 @@ class BriefingPipeline:
                         summary.unknowns.extend(f"Evidence validation: {error}" for error in validation_errors)
                 if self.cache_config.document_cache and can_write and not validation_errors:
                     self.document_cache.set_model(summary_key, summary, ttl_seconds=self._document_ttl_seconds())
-                summaries.append(summary)
+                summaries.append(self._summary_with_normalization_unknowns(summary, summary_document))
 
             output = render_briefing(
                 summaries,
@@ -194,8 +197,24 @@ class BriefingPipeline:
 
     def _cached_summary_matches(self, document: DocumentInput, summary: DocumentSummaryState, fingerprint: str) -> bool:
         return (
-            summary.schema_version == "1.0.0"
+            summary.schema_version == DOCUMENT_SUMMARY_SCHEMA_VERSION
             and summary.document_id == stable_document_id(document, fingerprint)
             and summary.content_fingerprint == fingerprint
             and summary.summarizer_id == self.summarizer.summarizer_id
         )
+
+    def _summary_with_normalization_unknowns(self, summary: DocumentSummaryState, document: DocumentInput) -> DocumentSummaryState:
+        normalization_unknowns = self._normalization_unknowns(document)
+        if not normalization_unknowns:
+            return summary
+        run_summary = summary.model_copy(deep=True)
+        for unknown in normalization_unknowns:
+            if unknown not in run_summary.unknowns:
+                run_summary.unknowns.append(unknown)
+        return run_summary
+
+    def _normalization_unknowns(self, document: DocumentInput) -> list[str]:
+        normalization_unknowns = document.metadata.get(NORMALIZATION_UNKNOWNS_KEY, [])
+        if not isinstance(normalization_unknowns, list):
+            return []
+        return [unknown for unknown in normalization_unknowns if isinstance(unknown, str)]

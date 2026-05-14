@@ -62,13 +62,13 @@ Only new document added → summarize only that document
 │   ├── summarizers.py
 │   ├── render.py
 │   ├── pipeline.py
-│   └── cli.py
-├── templates/
-│   ├── brief.md.j2
-│   ├── executive.md.j2
-│   ├── action_items.md.j2
-│   ├── digest.md.j2
-│   └── debug.md.j2
+│   ├── cli.py
+│   └── templates/
+│       ├── brief.md.j2
+│       ├── executive.md.j2
+│       ├── action_items.md.j2
+│       ├── digest.md.j2
+│       └── debug.md.j2
 ├── references/
 │   ├── architecture.md
 │   ├── schema.md
@@ -102,6 +102,12 @@ Optional extras:
 pip install -e ".[llm]"  # OpenAI-backed structured summarizer
 pip install -e ".[pdf]"  # PDF text extraction helpers
 ```
+
+## Input scope
+
+The CLI `--input` option currently accepts local file paths. It does not fetch URLs such as `http://` or `https://`.
+
+URL-bearing metadata inside JSON, XML, HTML, or `DocumentInput.source` is preserved as source/reference metadata for evidence and rendering. To summarize remote content, fetch it outside this tool and pass the saved local file or normalized payload.
 
 ## Validate
 
@@ -185,9 +191,11 @@ python -m document_briefing_cache.cli run \
   --cache-hmac-secret-env DBC_CACHE_HMAC_SECRET
 ```
 
-`--redact-pii` applies the built-in `basic-contact-v1` redaction profile before cache misses are summarized, and redacted/non-redacted cache keys are separated. The current profile covers common email addresses, Korean mobile numbers, and US phone numbers.
+For sensitive documents, the safe default is no persistent cache: use `--cache-policy ephemeral --no-output-cache --redact-pii` and add `--delete-on-exit created` when temporary cache files should be removed after the run.
 
-`--cache-hmac-secret-env` signs cache envelopes with HMAC-SHA256 using the named environment variable. Signed caches fail closed when the secret is missing and reject payload or expiry metadata tampering. This is integrity protection, not encryption.
+`--redact-pii` applies the built-in `basic-contact-v1` redaction profile before cache misses are summarized, and redacted/non-redacted cache keys are separated. The current profile covers common email addresses, Korean mobile numbers, and US phone numbers. It is not a complete PII detector for names, addresses, national IDs, account numbers, cards, API keys, or access tokens.
+
+`--cache-hmac-secret-env` signs cache envelopes with HMAC-SHA256 using the named environment variable. Signed caches fail closed when the secret is missing and reject payload or expiry metadata tampering. HMAC signing is tamper detection only, not encryption. Use encrypted storage, tmpfs, or another encrypted backend when cache contents need confidentiality.
 
 Cache maintenance commands:
 
@@ -212,7 +220,26 @@ The default `rules` summarizer is intentionally deterministic and token-free. It
 
 For high-quality summaries of new documents, connect an LLM summarizer at the cache-miss step. Keep the output structured as `DocumentSummaryState`.
 
+OpenAI-backed runs can be configured with explicit model, timeout, retry, and token-budget controls:
+
+```bash
+OPENAI_API_KEY="..." python -m document_briefing_cache.cli run \
+  --input examples/mixed_documents.json \
+  --summary-mode openai \
+  --openai-model gpt-4.1-mini \
+  --llm-timeout 60 \
+  --llm-max-retries 2 \
+  --llm-max-input-tokens 12000 \
+  --llm-max-output-tokens 4000 \
+  --cache-dir .cache \
+  --show-stats
+```
+
+When a document exceeds the input budget, the OpenAI adapter summarizes section-based chunks and merges the structured states before writing the document summary cache. Oversized sections are split into smaller text parts while preserving the original section ID for evidence validation. Transient provider failures, including rate limits, server errors, timeouts, and connection-style failures, are retried with exponential backoff; structured-output contract failures are not retried.
+
 Privacy note: `rules` mode is local and token-free. LLM-backed summarizers send cache misses to the configured provider, such as OpenAI, and require the relevant API key. Cache directories are plaintext JSON and may persist structured summaries, names, IDs, dates, metrics, evidence quotes, sources, and rendered outputs. HMAC detects tampering but does not hide contents. Keep `.cache/` out of git, use encrypted storage or tmpfs when needed, and use `ephemeral`, `--redact-pii`, or explicit cache clearing for sensitive documents.
+
+Evidence note: `DocumentSummaryState` schema `1.1.0` requires evidence for the top-level summary and each section digest, in addition to evidence for key points, decisions, actions, risks, and metrics. Evidence quotes should be copied from the normalized source sections so validation can reject unsupported claims and stale `1.0.0` document-summary caches.
 
 ## Recommended production design
 
