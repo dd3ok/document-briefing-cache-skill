@@ -4,6 +4,7 @@ import os
 import copy
 import json
 import re
+import time
 from abc import ABC, abstractmethod
 
 from .hashing import stable_document_id
@@ -61,10 +62,16 @@ class RuleBasedExtractiveSummarizer(BaseSummarizer):
         language = detect_language(text)
 
         summary_sentences = select_summary_sentences(sentences, limit=2)
-        summary = " ".join(summary_sentences) if summary_sentences else (document.title or "No summary available.")
-        summary_evidence = []
+        fallback_summary = fallback_source_quote(text)
         if summary_sentences:
+            summary = " ".join(summary_sentences)
             summary_evidence = [evidence(doc_id, find_section_for_sentence(sections, summary_sentences[0]), document.source, summary_sentences[0])]
+        elif fallback_summary:
+            summary = fallback_summary
+            summary_evidence = [evidence(doc_id, find_section_for_sentence(sections, fallback_summary), document.source, fallback_summary)]
+        else:
+            summary = document.title or "No summary available."
+            summary_evidence = []
 
         key_points = [
             KeyPoint(text=s, evidence=[evidence(doc_id, find_section_for_sentence(sections, s), document.source, s)])
@@ -251,11 +258,20 @@ class OpenAIStructuredSummarizer(BaseSummarizer):
             except Exception as exc:
                 if attempt == attempts - 1 or not self._is_transient_provider_error(exc):
                     raise
+                time.sleep(self.llm_config.retry_initial_delay_seconds * (2**attempt))
         raise RuntimeError("Provider retry loop exhausted unexpectedly.")
 
     def _is_transient_provider_error(self, exc: Exception) -> bool:
         status_code = getattr(exc, "status_code", None)
-        return status_code in self.transient_status_codes
+        if status_code is not None:
+            return status_code in self.transient_status_codes
+
+        class_name = type(exc).__name__.lower()
+        if any(marker in class_name for marker in ("validation", "schema", "jsondecode", "json_decode")):
+            return False
+        if isinstance(exc, (TimeoutError, ConnectionError)):
+            return True
+        return any(marker in class_name for marker in ("timeout", "timedout", "connection", "connecterror"))
 
 
 def strict_json_schema(schema: dict) -> dict:
@@ -301,6 +317,10 @@ def select_summary_sentences(sentences: list[str], limit: int) -> list[str]:
     selected = sorted(scored, key=lambda item: (-item[0], item[1]))[:limit]
     selected.sort(key=lambda item: item[1])
     return [item[2] for item in selected]
+
+
+def fallback_source_quote(text: str) -> str:
+    return re.sub(r"\s+", " ", text or "").strip()[:240]
 
 
 def contains_any(text: str, keywords: tuple[str, ...]) -> bool:

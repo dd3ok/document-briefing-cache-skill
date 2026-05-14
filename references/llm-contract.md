@@ -67,8 +67,9 @@ The OpenAI adapter exposes production controls:
 - `max_output_tokens`: provider response budget. Default: `4000`.
 - `timeout_seconds`: per-provider-call timeout. Default: `60.0`.
 - `max_retries`: retry count after the first attempt. Default: `2`.
+- `retry_initial_delay_seconds`: first retry delay before exponential backoff. Default: `1.0`.
 
-Provider calls set truncation to disabled and request non-stored responses. Retry only transient provider failures with status codes `408`, `409`, `429`, `500`, `502`, `503`, or `504`. Do not retry JSON decoding failures, schema validation failures, or returned-state identity mismatches; those are contract failures that need correction rather than another identical call.
+Provider calls set truncation to disabled and request non-stored responses. Retry transient provider failures with exponential backoff, including status codes `408`, `409`, `429`, `500`, `502`, `503`, or `504`, and timeout or connection-style provider exceptions without status codes. Do not retry JSON decoding failures, schema validation failures, or returned-state identity mismatches; those are contract failures that need correction rather than another identical call.
 
 ## Prompt caching design
 

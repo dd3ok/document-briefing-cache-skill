@@ -44,21 +44,26 @@ class TransientProviderError(Exception):
         self.status_code = status_code
 
 
+class StatuslessAPIConnectionError(Exception):
+    pass
+
+
 class FlakyResponses:
-    def __init__(self, output_text):
+    def __init__(self, output_text, failures=None):
         self.output_text = output_text
+        self.failures = list(failures or [TransientProviderError(429)])
         self.calls = []
 
     def create(self, **kwargs):
         self.calls.append(kwargs)
-        if len(self.calls) == 1:
-            raise TransientProviderError(429)
+        if self.failures:
+            raise self.failures.pop(0)
         return type("FakeResponse", (), {"output_text": self.output_text})()
 
 
 class FlakyClient:
-    def __init__(self, output_text):
-        self.responses = FlakyResponses(output_text)
+    def __init__(self, output_text, failures=None):
+        self.responses = FlakyResponses(output_text, failures=failures)
 
 
 def expected_structured_payload():
@@ -213,7 +218,7 @@ def test_openai_summarizer_retries_transient_provider_errors():
     summarizer = OpenAIStructuredSummarizer(
         model="test-model",
         client=client,
-        llm_config=LLMConfig(max_retries=1),
+        llm_config=LLMConfig(max_retries=1, retry_initial_delay_seconds=0),
     )
     document = DocumentInput(document_id="doc-1", title="Doc", text="Decision: proceed.")
 
@@ -221,6 +226,59 @@ def test_openai_summarizer_retries_transient_provider_errors():
 
     assert state.document_id == "doc-1"
     assert len(client.responses.calls) == 2
+
+
+def test_openai_summarizer_uses_exponential_backoff_before_retry(monkeypatch):
+    sleeps = []
+    monkeypatch.setattr("document_briefing_cache.summarizers.time.sleep", sleeps.append)
+    client = FlakyClient(valid_state_json(), failures=[TransientProviderError(429), TransientProviderError(503)])
+    summarizer = OpenAIStructuredSummarizer(
+        model="test-model",
+        client=client,
+        llm_config=LLMConfig(max_retries=2),
+    )
+    document = DocumentInput(document_id="doc-1", title="Doc", text="Decision: proceed.")
+
+    summarizer.summarize(document, split_into_sections(document.text), "fingerprint")
+
+    assert sleeps == [1.0, 2.0]
+    assert len(client.responses.calls) == 3
+
+
+def test_openai_summarizer_retries_statusless_timeout_and_connection_errors(monkeypatch):
+    sleeps = []
+    monkeypatch.setattr("document_briefing_cache.summarizers.time.sleep", sleeps.append)
+    client = FlakyClient(valid_state_json(), failures=[TimeoutError("timed out"), StatuslessAPIConnectionError("connection reset")])
+    summarizer = OpenAIStructuredSummarizer(
+        model="test-model",
+        client=client,
+        llm_config=LLMConfig(max_retries=2),
+    )
+    document = DocumentInput(document_id="doc-1", title="Doc", text="Decision: proceed.")
+
+    state = summarizer.summarize(document, split_into_sections(document.text), "fingerprint")
+
+    assert state.document_id == "doc-1"
+    assert sleeps == [1.0, 2.0]
+    assert len(client.responses.calls) == 3
+
+
+def test_openai_summarizer_does_not_retry_json_contract_failures(monkeypatch):
+    sleeps = []
+    monkeypatch.setattr("document_briefing_cache.summarizers.time.sleep", sleeps.append)
+    client = RecordingClient("{not json")
+    summarizer = OpenAIStructuredSummarizer(
+        model="test-model",
+        client=client,
+        llm_config=LLMConfig(max_retries=2),
+    )
+    document = DocumentInput(document_id="doc-1", title="Doc", text="Decision: proceed.")
+
+    with pytest.raises(json.JSONDecodeError):
+        summarizer.summarize(document, split_into_sections(document.text), "fingerprint")
+
+    assert sleeps == []
+    assert len(client.responses.calls) == 1
 
 
 def test_openai_summarizer_chunks_large_documents_before_provider_call():

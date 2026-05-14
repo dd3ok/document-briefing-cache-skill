@@ -20,6 +20,7 @@ from .models import (
 class LLMConfig:
     timeout_seconds: float = 60.0
     max_retries: int = 2
+    retry_initial_delay_seconds: float = 1.0
     max_input_tokens: int = 12000
     max_output_tokens: int = 4000
 
