@@ -89,6 +89,7 @@ def test_cli_sensitive_alias_uses_ephemeral_redacted_no_output_cache(tmp_path, c
     assert "alice@example.com" not in output
     assert "mailto:alice@example.com" not in output
     assert "REDACTED:email" in output
+    assert stats["sensitive_mode"] is True
     assert stats["cache_policy"] == "ephemeral"
     assert stats["pii_redactions"] >= 1
     assert stats["delete_on_exit_applied"] is True
@@ -96,3 +97,34 @@ def test_cli_sensitive_alias_uses_ephemeral_redacted_no_output_cache(tmp_path, c
     assert stats["output_cache_event"]["reason"] == "output_disabled"
     assert not list((tmp_path / "cache" / "document_summaries").glob("*.json"))
     assert not list((tmp_path / "cache" / "rendered_outputs").glob("*.json"))
+
+
+def test_cli_manual_sensitive_equivalent_flags_do_not_set_sensitive_alias_marker(tmp_path, capsys):
+    input_path = tmp_path / "private.json"
+    input_path.write_text(
+        json.dumps({"documents": [{"id": "private-1", "title": "Private follow-up", "content": "Action: Support should email alice@example.com."}]}),
+        encoding="utf-8",
+    )
+
+    assert main(
+        [
+            "--input",
+            str(input_path),
+            "--cache-dir",
+            str(tmp_path / "cache"),
+            "--cache-policy",
+            "ephemeral",
+            "--no-output-cache",
+            "--redact-pii",
+            "--delete-on-exit",
+            "created",
+            "--show-stats",
+        ]
+    ) == 0
+
+    output = capsys.readouterr().out
+    stats = json.loads(output.split("--- stats ---", 1)[1])
+    assert stats["sensitive_mode"] is False
+    assert stats["cache_policy"] == "ephemeral"
+    assert stats["pii_redactions"] >= 1
+    assert stats["delete_on_exit_applied"] is True

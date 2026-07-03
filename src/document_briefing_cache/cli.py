@@ -156,6 +156,7 @@ def run_with_args(args: argparse.Namespace) -> int:
         delete_on_exit=args.delete_on_exit,
         cache_hmac_secret_env=args.cache_hmac_secret_env,
         redact_pii=args.redact_pii,
+        sensitive_mode=args.sensitive,
     )
     pipeline = BriefingPipeline(cache_config=cache_config, summarizer=summarizer)
     result = pipeline.run(

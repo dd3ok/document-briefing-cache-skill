@@ -60,6 +60,7 @@ class CacheConfig(BaseModel):
     validate_evidence: bool = True
     cache_hmac_secret_env: str | None = None
     redact_pii: bool = False
+    sensitive_mode: bool = False
 
 
 class DocumentSection(BaseModel):
@@ -201,6 +202,7 @@ class PipelineStats(BaseModel):
     evidence_validation_errors: int = 0
     pii_redactions: int = 0
     delete_on_exit_applied: bool = False
+    sensitive_mode: bool = False
     document_cache_events: list[DocumentCacheEvent] = Field(default_factory=list)
     output_cache_event: OutputCacheEvent | None = None
 

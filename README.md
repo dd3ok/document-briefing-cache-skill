@@ -260,7 +260,8 @@ python -m document_briefing_cache.cli run \
 
 For sensitive documents, the safe default is no persistent cache. `--sensitive`
 is a convenience alias for `--cache-policy ephemeral --no-output-cache
---redact-pii --delete-on-exit created`.
+--redact-pii --delete-on-exit created`. When `--show-stats` is enabled,
+`sensitive_mode: true` marks that the alias was used.
 
 `--redact-pii` applies the built-in `basic-contact-v1` redaction profile before cache misses are summarized, and redacted/non-redacted cache keys are separated. The current profile covers common email addresses, Korean mobile numbers, and US phone numbers. It is not a complete PII detector for names, addresses, national IDs, account numbers, cards, API keys, or access tokens.
 
