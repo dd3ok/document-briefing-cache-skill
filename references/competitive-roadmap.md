@@ -38,6 +38,7 @@ Repository evidence:
 External guidance:
 
 - OpenAI and Codex skills guidance supports compact `SKILL.md`, trigger-focused descriptions, and supporting files for longer reference material.
+- Codex skill discovery starts from skill metadata and loads the full `SKILL.md` only after choosing the skill, so descriptions should front-load the key use case and boundaries.
 - Claude Code skills guidance also supports compact `SKILL.md` and moving long examples or references out of the skill body.
 - OpenAI prompt caching guidance supports treating provider prompt caching as prefix-processing optimization with `cached_tokens`, not as application-level document state reuse.
 
@@ -57,6 +58,17 @@ Use these gates before adding an item to the roadmap.
 | Blast radius | Does it avoid schema churn unless fixture failures prove need? | Yes |
 
 Items that fail two or more gates should be deferred or rejected.
+
+## Definition Of Done Pattern
+
+Every included roadmap item needs a small Definition of Done before implementation starts:
+
+- User-visible outcome: what a user can see or run.
+- Local proof: test, fixture, or benchmark command that proves the behavior without provider credentials.
+- Boundary proof: one test or doc note showing what the feature does not promise.
+- No new surface: no service, database, network fetcher, broad DSL, or schema expansion unless a failing fixture first proves it is needed.
+
+This keeps the roadmap aligned with vendor skill guidance: compact entry instructions, longer supporting references, and clear trigger boundaries.
 
 ## Recommended Roadmap
 
@@ -135,24 +147,37 @@ Add a small event model to stats, for example:
 ```python
 class DocumentCacheEvent(BaseModel):
     document_id: str
+    title: str | None = None
     fingerprint_prefix: str
     cache_key_prefix: str
     status: Literal["hit", "miss", "expired", "corrupt", "bypass", "refresh", "ephemeral"]
-    reason: str
+    reason: Literal[
+        "hit_same_contract",
+        "miss_new_fingerprint",
+        "miss_refresh_policy",
+        "miss_bypass_policy",
+        "miss_ephemeral_policy",
+        "miss_cache_disabled",
+        "expired_ttl",
+        "corrupt_validation_failed",
+        "corrupt_hmac_failed",
+        "rejected_contract_mismatch",
+    ]
+    summarizer_id: str
+    schema_version: str
+    redaction_policy_id: str
 ```
 
 Add `document_cache_events: list[DocumentCacheEvent]` to `PipelineStats`.
 
-Reason examples:
+Reason codes should be enums, not free text, so tests and benchmark reports can compare them reliably. Output-cache events can use a smaller parallel vocabulary:
 
 ```text
-same fingerprint, schema, summarizer, redaction policy
-new fingerprint
-expired cache entry
-corrupt cache entry
-cache policy bypass
-cache policy refresh
-ephemeral policy disables reads and writes
+output_hit_same_render_key
+output_miss_mode_changed
+output_miss_template_changed
+output_disabled
+output_disabled_normalization_unknowns
 ```
 
 Statuses such as `bypass`, `refresh`, and `ephemeral` are emitted from policy decisions before cache lookup, not from cache-file reads.
@@ -174,13 +199,13 @@ Possible text output:
 
 | Document | Fingerprint | Result | Reason |
 | --- | --- | --- | --- |
-| TCK-4821 | 91ab32f4c012 | hit | same fingerprint, schema, summarizer, redaction policy |
-| INC-2026-0703-PAY | aa82c19eaa31 | hit | same fingerprint, schema, summarizer, redaction policy |
-| update-2026-07-03-1530 | 93cb710ff991 | miss | new fingerprint |
+| TCK-4821 | 91ab32f4c012 | hit | hit_same_contract |
+| INC-2026-0703-PAY | aa82c19eaa31 | hit | hit_same_contract |
+| update-2026-07-03-1530 | 93cb710ff991 | miss | miss_new_fingerprint |
 
 Output cache:
 - result: miss
-- reason: render mode changed or output key not present
+- reason: output_miss_mode_changed
 ```
 
 Acceptance evidence:
@@ -207,6 +232,7 @@ Current baseline:
 
 - JSON arrays under `documents`, `items`, `results`, `records`, `articles`, or `data` already normalize into multiple documents.
 - `--split-input-sections` already splits multi-section Markdown-like input into section-level documents.
+- Current section ids are order-based (`parent_id#section-1`, `parent_id#section-2`, ...), so inserting or reordering earlier sections can change later section ids and reduce cache hits.
 
 Design rule:
 
@@ -255,6 +281,7 @@ Acceptance evidence:
 - Benchmark proves old records hit and only the new record misses.
 - Tests cover `Incident ID` and `Incident Update` boundaries.
 - Docs explicitly prefer structured JSON input when available.
+- Docs state that `--split-input-sections` is best for append-only or mostly stable section order, not for heavily reordered documents.
 
 Non-goals:
 
@@ -286,6 +313,8 @@ Acceptance evidence:
 - `scripts/validate_skill.py --run-evals` validates the new fixtures.
 - Fixtures assert both output text and `DocumentSummaryState` fields where possible.
 - For LLM-backed behavior, fixtures separate deterministic schema expectations from live model quality expectations.
+- Benchmark docs state that quality warnings are structural smoke checks, not semantic accuracy scores.
+- Benchmark docs explain that rendered-output cache hits can make quality coverage unevaluated because structured summaries may not be reloaded.
 
 Non-goals:
 

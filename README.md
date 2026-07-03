@@ -178,6 +178,10 @@ For large Markdown-like inputs, add `--split-input-sections` to benchmark
 section-level document caching. This is useful when a report is updated by
 appending or editing one section: unchanged sections can keep their own
 document-summary cache entries instead of invalidating one monolithic document.
+Section splitting is order-sensitive: inserting or reordering sections before
+existing sections can change section ids and reduce cache hits. For incident,
+ticket, or PR-style feeds, prefer structured JSON records with stable ids when
+available.
 
 The report compares:
 
@@ -193,6 +197,11 @@ The report compares:
 - `rows[].quality`: lightweight structural coverage for obvious actions,
   decisions, risks, and metrics. This is not a semantic accuracy score; it helps
   catch cases where token savings hide shallow extraction.
+
+Quality warnings are smoke checks, not completeness or correctness scores. A
+run with zero warnings can still miss nuance. If a rendered-output cache hit
+marks quality as unevaluated, disable output caching or use debug output when
+you need to inspect structured-state coverage for that run.
 
 `--fresh` clears only the benchmark cache namespaces under `--cache-dir`
 (`document_summaries` and `rendered_outputs`); it does not delete the cache

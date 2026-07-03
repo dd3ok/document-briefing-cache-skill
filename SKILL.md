@@ -28,7 +28,7 @@ Tradeoff: This skill optimizes repeated, document-grounded briefings. Do not use
 6. Render with `brief`, `executive`, `action_items`, `digest`, or `debug` templates.
 7. Report cache stats when useful.
 
-For large Markdown-like documents with section-level updates, prefer `--split-input-sections` so unchanged sections can reuse document-summary cache entries.
+For large append-only or mostly stable Markdown-like documents, prefer `--split-input-sections` so unchanged sections can reuse document-summary cache entries. Do not treat it as stable identity for heavily reordered sections.
 
 ## When to call an LLM
 
