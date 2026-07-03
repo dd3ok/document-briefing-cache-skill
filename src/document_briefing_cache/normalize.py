@@ -28,7 +28,7 @@ def normalization_unknown(message: str) -> dict[str, list[str]]:
 
 
 def read_file(path: str | Path) -> str:
-    return Path(path).read_text(encoding="utf-8")
+    return Path(path).read_text(encoding="utf-8-sig")
 
 
 def detect_format_from_path(path: str | Path) -> ContentFormat:
