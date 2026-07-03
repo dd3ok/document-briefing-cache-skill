@@ -14,10 +14,12 @@ class CapturingSummarizer(RuleBasedExtractiveSummarizer):
     def __init__(self):
         self.seen_document_text = ""
         self.seen_sections = []
+        self.seen_raw = None
 
     def summarize(self, document, sections, content_fingerprint):
         self.seen_document_text = document.text or ""
         self.seen_sections = [section.text for section in sections]
+        self.seen_raw = document.raw
         return super().summarize(document, sections, content_fingerprint)
 
 
@@ -258,6 +260,37 @@ def test_pipeline_redacts_secrets_before_summarizer_output_and_cache(tmp_path):
     cached_text = "\n".join(path.read_text(encoding="utf-8") for path in tmp_path.rglob("*.json"))
     assert secret not in cached_text
     assert "abcdef1234567890" not in cached_text
+
+
+def test_pipeline_redacts_structured_secret_fields_before_summarizer(tmp_path):
+    api_key = "sk_live_123456789abcdef"
+    client_secret = "client-secret-123456789"
+    docs = [
+        DocumentInput(
+            document_id="raw-secret-ticket",
+            title="Raw secret cleanup",
+            text=f"api_key: {api_key}\nAction: Security should rotate the leaked key.",
+            raw={
+                "api_key": api_key,
+                "nested": {"client_secret": client_secret},
+                "owner": "ops",
+            },
+        )
+    ]
+    summarizer = CapturingSummarizer()
+
+    result = BriefingPipeline(
+        cache_config=CacheConfig(cache_dir=str(tmp_path), output_cache=False, redact_secrets=True),
+        summarizer=summarizer,
+    ).run(docs, use_output_cache=False)
+
+    seen_raw = json.dumps(summarizer.seen_raw, ensure_ascii=False)
+    assert api_key not in seen_raw
+    assert client_secret not in seen_raw
+    assert seen_raw.count("[REDACTED:secret]") == 2
+    assert '"owner": "ops"' in seen_raw
+    assert api_key not in result.output
+    assert result.stats.secret_redactions >= 2
 
 
 def test_secret_redacted_run_does_not_use_prior_unredacted_cache(tmp_path):
