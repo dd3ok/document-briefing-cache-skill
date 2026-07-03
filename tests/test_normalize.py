@@ -1,5 +1,6 @@
 from document_briefing_cache.models import ContentFormat, DocumentInput
 from document_briefing_cache.normalize import (
+    load_path_to_documents,
     normalize_payload,
     split_documents_into_incident_records,
     split_documents_into_section_documents,
@@ -19,6 +20,21 @@ def test_json_documents_are_normalized():
     assert docs[0].document_id == "a"
     assert docs[0].content_format == ContentFormat.json
     assert "ship it" in docs[0].text
+
+
+def test_load_path_to_documents_accepts_utf8_bom_json(tmp_path):
+    input_path = tmp_path / "bom.json"
+    input_path.write_bytes(
+        b'\xef\xbb\xbf{"documents":[{"id":"doc-1","title":"BOM JSON","content":"Action: owner should reply."}]}'
+    )
+
+    docs = load_path_to_documents(input_path)
+
+    assert len(docs) == 1
+    assert docs[0].document_id == "doc-1"
+    assert docs[0].title == "BOM JSON"
+    assert docs[0].content_format == ContentFormat.json
+    assert "owner should reply" in docs[0].text
 
 
 def test_html_is_stripped_to_text():
