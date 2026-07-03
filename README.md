@@ -265,6 +265,8 @@ is a convenience alias for `--cache-policy ephemeral --no-output-cache
 
 `--redact-pii` applies the built-in `basic-contact-v1` redaction profile before cache misses are summarized, and redacted/non-redacted cache keys are separated. The current profile covers common email addresses, Korean mobile numbers, and US phone numbers. It is not a complete PII detector for names, addresses, national IDs, account numbers, cards, API keys, or access tokens.
 
+`--redact-secrets` applies the built-in `basic-secrets-v1` profile before cache misses are summarized. It is best-effort and currently targets bearer tokens, API keys, webhook URLs, and Luhn-valid card-like values. Secret redaction is not included in --sensitive; enable it explicitly when secret-shaped values may appear in the supplied documents. It is not a complete secret scanner.
+
 `--cache-hmac-secret-env` signs cache envelopes with HMAC-SHA256 using the named environment variable. Signed caches fail closed when the secret is missing and reject payload or expiry metadata tampering. HMAC signing is tamper detection only, not encryption. Use encrypted storage, tmpfs, or another encrypted backend when cache contents need confidentiality.
 
 Cache maintenance commands:

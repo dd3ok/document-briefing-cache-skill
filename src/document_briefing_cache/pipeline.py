@@ -22,7 +22,7 @@ from .models import (
     PipelineStats,
 )
 from .normalize import NORMALIZATION_UNKNOWNS_KEY, split_into_sections
-from .privacy import redact_document_input, redaction_policy_id
+from .privacy import redact_configured_document_input, redaction_policy_id
 from .render import TEMPLATE_VERSION, render_briefing
 from .summarizers import BaseSummarizer, RuleBasedExtractiveSummarizer
 
@@ -78,7 +78,7 @@ class BriefingPipeline:
             effective_output_cache = False
         can_read = self.cache_config.policy not in {"bypass", "refresh", "ephemeral"}
         can_write = self.cache_config.policy not in {"bypass", "read_only", "ephemeral"}
-        privacy_profile = redaction_policy_id(self.cache_config.redact_pii)
+        privacy_profile = redaction_policy_id(self.cache_config.redact_pii, self.cache_config.redact_secrets)
 
         out_key = output_cache_key(
             documents,
@@ -128,9 +128,14 @@ class BriefingPipeline:
             for document in documents:
                 fingerprint = document_content_fingerprint(document)
                 summary_document = document
-                if self.cache_config.redact_pii:
-                    summary_document, redaction_count = redact_document_input(document)
-                    stats.pii_redactions += redaction_count
+                if self.cache_config.redact_pii or self.cache_config.redact_secrets:
+                    summary_document, pii_count, secret_count = redact_configured_document_input(
+                        document,
+                        redact_pii=self.cache_config.redact_pii,
+                        redact_secrets=self.cache_config.redact_secrets,
+                    )
+                    stats.pii_redactions += pii_count
+                    stats.secret_redactions += secret_count
                 summary_key = document_summary_cache_key(
                     document,
                     fingerprint=fingerprint,

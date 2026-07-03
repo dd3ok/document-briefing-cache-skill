@@ -171,9 +171,11 @@ def test_run_with_args_allows_legacy_namespace_without_sensitive_attribute(tmp_p
         ]
     )
     delattr(args, "sensitive")
+    delattr(args, "redact_secrets")
 
     assert run_with_args(args) == 0
 
     output = capsys.readouterr().out
     stats = json.loads(output.split("--- stats ---", 1)[1])
     assert stats["sensitive_mode"] is False
+    assert stats["secret_redactions"] == 0

@@ -4,7 +4,7 @@ import pytest
 
 from document_briefing_cache.models import CacheConfig, DocumentInput
 from document_briefing_cache.pipeline import BriefingPipeline
-from document_briefing_cache.privacy import redact_document_input, redact_pii_text
+from document_briefing_cache.privacy import redact_document_input, redact_pii_text, redact_secret_text
 from document_briefing_cache.summarizers import RuleBasedExtractiveSummarizer
 
 
@@ -189,6 +189,92 @@ def test_pii_redaction_preserves_non_pii_protected_values():
     assert "2026-05-12" in redacted
     assert "2.4%" in redacted
     assert "183 ms" in redacted
+
+
+def test_secret_redaction_covers_common_tokens_and_preserves_operational_values():
+    text = (
+        "Action: Rotate api_key=sk_test_123456789abcdef and Authorization: Bearer abcdef1234567890. "
+        "Webhook https://hooks.slack.com/services/T000/B000/SECRET123456 should be replaced. "
+        "Card 4111-1111-1111-1111 was pasted by mistake. "
+        "Keep INC-2026-091, 2026-05-12, 2.4%, and 183 ms."
+    )
+
+    redacted, count = redact_secret_text(text)
+
+    assert count == 4
+    assert "sk_test_123456789abcdef" not in redacted
+    assert "abcdef1234567890" not in redacted
+    assert "hooks.slack.com/services" not in redacted
+    assert "4111-1111-1111-1111" not in redacted
+    assert "[REDACTED:secret]" in redacted
+    assert "[REDACTED:webhook-url]" in redacted
+    assert "[REDACTED:card]" in redacted
+    assert "INC-2026-091" in redacted
+    assert "2026-05-12" in redacted
+    assert "2.4%" in redacted
+    assert "183 ms" in redacted
+
+
+def test_secret_redaction_covers_quoted_assignment_keys():
+    text = (
+        '{"api_key": "sk_test_123456789abcdef", '
+        "'client_secret': 'client-secret-123456789', "
+        '"owner": "ops"}'
+    )
+
+    redacted, count = redact_secret_text(text)
+
+    assert count == 2
+    assert "sk_test_123456789abcdef" not in redacted
+    assert "client-secret-123456789" not in redacted
+    assert '"api_key": "[REDACTED:secret]"' in redacted
+    assert "'client_secret': '[REDACTED:secret]'" in redacted
+    assert '"owner": "ops"' in redacted
+
+
+def test_pipeline_redacts_secrets_before_summarizer_output_and_cache(tmp_path):
+    secret = "sk_test_123456789abcdef"
+    docs = [
+        DocumentInput(
+            document_id="secret-ticket",
+            title="Secret cleanup",
+            text=f"Action: Security should rotate api_key={secret} and Authorization: Bearer abcdef1234567890.",
+        )
+    ]
+    summarizer = CapturingSummarizer()
+
+    result = BriefingPipeline(
+        cache_config=CacheConfig(cache_dir=str(tmp_path), output_cache=False, redact_secrets=True),
+        summarizer=summarizer,
+    ).run(docs, use_output_cache=False)
+
+    seen_text = "\n".join([summarizer.seen_document_text, *summarizer.seen_sections, result.output])
+    assert secret not in seen_text
+    assert "abcdef1234567890" not in seen_text
+    assert "[REDACTED:secret]" in seen_text
+    assert result.stats.secret_redactions == 2
+    assert result.stats.pii_redactions == 0
+
+    cached_text = "\n".join(path.read_text(encoding="utf-8") for path in tmp_path.rglob("*.json"))
+    assert secret not in cached_text
+    assert "abcdef1234567890" not in cached_text
+
+
+def test_secret_redacted_run_does_not_use_prior_unredacted_cache(tmp_path):
+    secret = "sk_test_123456789abcdef"
+    docs = [DocumentInput(document_id="secret-ticket", title="Secret cleanup", text=f"Action: Rotate api_key={secret}.")]
+
+    raw_result = BriefingPipeline(cache_config=CacheConfig(cache_dir=str(tmp_path), output_cache=True)).run(docs, use_output_cache=True)
+    assert secret.replace("_", "\\_") in raw_result.output
+
+    redacted_result = BriefingPipeline(
+        cache_config=CacheConfig(cache_dir=str(tmp_path), output_cache=True, redact_secrets=True)
+    ).run(docs, use_output_cache=True)
+
+    assert redacted_result.stats.output_cache_hit is False
+    assert redacted_result.stats.document_cache_hits == 0
+    assert secret not in redacted_result.output
+    assert "REDACTED:secret" in redacted_result.output
 
 
 def test_pipeline_hmac_secret_env_missing_fails_closed(tmp_path, monkeypatch):
