@@ -325,51 +325,64 @@ def split_documents_into_incident_records(documents: list[DocumentInput]) -> lis
 
 def split_incident_document(document: DocumentInput) -> list[DocumentInput]:
     text = (document.text or "").strip()
-    update_matches = list(INCIDENT_UPDATE_PATTERN.finditer(text))
-    incident_match = INCIDENT_ID_PATTERN.search(text)
-    if not update_matches or not incident_match:
+    blocks = incident_document_blocks(text)
+    if not blocks or not any(INCIDENT_UPDATE_PATTERN.search(block_text) for _, block_text in blocks):
         return [document]
 
-    incident_id = incident_match.group("id").strip()
     records: list[DocumentInput] = []
-    root_text = text[: update_matches[0].start()].strip()
-    if root_text and incident_root_has_body(root_text):
-        records.append(
-            incident_record_document(
-                document,
-                document_id=f"{incident_id}/root",
-                title=document.title,
-                text=root_text,
-                parent_id=incident_id,
-                record_type="incident_root",
-                record_label="root",
+    seen_update_slugs_by_incident: dict[str, set[str]] = {}
+    for incident_id, block_text in blocks:
+        update_matches = list(INCIDENT_UPDATE_PATTERN.finditer(block_text))
+        root_text = block_text[: update_matches[0].start()].strip() if update_matches else block_text
+        if root_text and incident_root_has_body(root_text):
+            records.append(
+                incident_record_document(
+                    document,
+                    document_id=f"{incident_id}/root",
+                    title=document.title,
+                    text=root_text,
+                    parent_id=incident_id,
+                    record_type="incident_root",
+                    record_label="root",
+                )
             )
-        )
 
-    seen_update_slugs: set[str] = set()
-    for match_index, match in enumerate(update_matches):
-        start = match.start()
-        end = update_matches[match_index + 1].start() if match_index + 1 < len(update_matches) else len(text)
-        update_text = text[start:end].strip()
-        if not update_text:
-            continue
-        label = incident_update_label(match.group("label"))
-        record_slug = unique_incident_update_slug(label, update_text, seen_update_slugs)
-        if not INCIDENT_ID_PATTERN.search(update_text):
-            update_text = f"Incident ID: {incident_id}\n{update_text}"
-        records.append(
-            incident_record_document(
-                document,
-                document_id=f"{incident_id}/update-{record_slug}",
-                title=f"{document.title or incident_id} update {label}",
-                text=update_text,
-                parent_id=incident_id,
-                record_type="incident_update",
-                record_label=label,
+        seen_update_slugs = seen_update_slugs_by_incident.setdefault(incident_id, set())
+        for match_index, match in enumerate(update_matches):
+            start = match.start()
+            end = update_matches[match_index + 1].start() if match_index + 1 < len(update_matches) else len(block_text)
+            update_text = block_text[start:end].strip()
+            if not update_text:
+                continue
+            label = incident_update_label(match.group("label"))
+            record_slug = unique_incident_update_slug(label, update_text, seen_update_slugs)
+            if not INCIDENT_ID_PATTERN.search(update_text):
+                update_text = f"Incident ID: {incident_id}\n{update_text}"
+            records.append(
+                incident_record_document(
+                    document,
+                    document_id=f"{incident_id}/update-{record_slug}",
+                    title=f"{document.title or incident_id} update {label}",
+                    text=update_text,
+                    parent_id=incident_id,
+                    record_type="incident_update",
+                    record_label=label,
+                )
             )
-        )
 
     return records or [document]
+
+
+def incident_document_blocks(text: str) -> list[tuple[str, str]]:
+    matches = list(INCIDENT_ID_PATTERN.finditer(text))
+    blocks: list[tuple[str, str]] = []
+    for match_index, match in enumerate(matches):
+        start = 0 if match_index == 0 else match.start()
+        end = matches[match_index + 1].start() if match_index + 1 < len(matches) else len(text)
+        block_text = text[start:end].strip()
+        if block_text:
+            blocks.append((match.group("id").strip(), block_text))
+    return blocks
 
 
 def incident_root_has_body(root_text: str) -> bool:

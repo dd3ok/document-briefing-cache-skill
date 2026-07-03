@@ -166,6 +166,42 @@ def test_split_documents_into_incident_records_uses_timestamp_prefix_for_one_lin
     assert "Status: mitigated, not resolved" in split_docs[0].text
 
 
+def test_split_documents_into_incident_records_uses_nearest_incident_id_per_update():
+    docs = [
+        DocumentInput(
+            document_id="feed-1",
+            title="Multi incident feed",
+            content_format=ContentFormat.markdown,
+            text=(
+                "Incident ID: INC-1\n"
+                "Status: open.\n"
+                "Incident Update: 2026-07-03 15:30 KST\n"
+                "Action: owner should check the first incident.\n\n"
+                "Incident ID: INC-2\n"
+                "Status: open.\n"
+                "Incident Update: 2026-07-03 16:00 KST\n"
+                "Action: owner should check the second incident."
+            ),
+        )
+    ]
+
+    split_docs = split_documents_into_incident_records(docs)
+
+    assert [doc.document_id for doc in split_docs] == [
+        "INC-1/root",
+        "INC-1/update-2026-07-03-15-30-kst",
+        "INC-2/root",
+        "INC-2/update-2026-07-03-16-00-kst",
+    ]
+    assert split_docs[1].metadata["parent_document_id"] == "INC-1"
+    assert split_docs[3].metadata["parent_document_id"] == "INC-2"
+    assert split_docs[1].text.startswith("Incident ID: INC-1\n")
+    assert split_docs[3].text.startswith("Incident ID: INC-2\n")
+    assert "INC-2" not in split_docs[1].text
+    assert "first incident" in split_docs[1].text
+    assert "second incident" in split_docs[3].text
+
+
 def test_url_fields_are_preserved_as_source_metadata_without_fetching():
     docs = normalize_payload(
         {"documents": [{"id": "u1", "title": "Remote Copy", "url": "https://example.com/report", "content": "Decision: keep local copy."}]}
