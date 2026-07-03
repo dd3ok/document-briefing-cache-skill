@@ -4,10 +4,11 @@ import argparse
 import json
 import sys
 
+from .benchmark import build_standard_scenarios, run_benchmark
 from .cache import merge_operation_results
 from .llm import LLMConfig
-from .models import CacheConfig
-from .normalize import load_path_to_documents
+from .models import CacheConfig, DocumentInput
+from .normalize import load_path_to_documents, split_documents_into_section_documents
 from .pipeline import BriefingPipeline
 from .summarizers import OpenAIStructuredSummarizer, RuleBasedExtractiveSummarizer
 
@@ -25,6 +26,7 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--locale", default="ko-KR")
     parser.add_argument("--cache-dir", default=".cache")
     parser.add_argument("--summary-mode", default="rules", choices=["rules", "openai"])
+    parser.add_argument("--split-input-sections", action="store_true", help="Split multi-section inputs into section-level documents before caching.")
     parser.add_argument("--openai-model", default=None)
     parser.add_argument("--llm-timeout", type=float, default=60.0)
     parser.add_argument("--llm-max-retries", type=int, default=2)
@@ -47,6 +49,21 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command")
     run_parser = subparsers.add_parser("run", help="Render cached document briefings.")
     add_run_arguments(run_parser)
+
+    benchmark_parser = subparsers.add_parser("benchmark", help="Benchmark repeated rendering and document cache reuse.")
+    benchmark_parser.add_argument("--input", "-i", action="append", required=True, help="Base input file path. Can be repeated.")
+    benchmark_parser.add_argument("--incremental-input", action="append", default=[], help="Additional input file path for the incremental phase.")
+    benchmark_parser.add_argument("--mode", action="append", default=None, choices=["brief", "executive", "action_items", "digest", "debug"])
+    benchmark_parser.add_argument("--cache-dir", default=".cache/benchmark")
+    benchmark_parser.add_argument("--fresh", action="store_true", help="Clear the benchmark cache directory before running.")
+    benchmark_parser.add_argument("--summary-mode", default="rules", choices=["rules", "openai"])
+    benchmark_parser.add_argument("--split-input-sections", action="store_true", help="Split multi-section inputs into section-level documents before benchmarking.")
+    benchmark_parser.add_argument("--openai-model", default=None)
+    benchmark_parser.add_argument("--llm-timeout", type=float, default=60.0)
+    benchmark_parser.add_argument("--llm-max-retries", type=int, default=2)
+    benchmark_parser.add_argument("--llm-max-input-tokens", type=int, default=12000)
+    benchmark_parser.add_argument("--llm-max-output-tokens", type=int, default=4000)
+    benchmark_parser.add_argument("--json", action="store_true")
 
     cache_parser = subparsers.add_parser("cache", help="Inspect or clean cache data.")
     cache_subparsers = cache_parser.add_subparsers(dest="cache_command", required=True)
@@ -74,12 +91,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    if argv and argv[0] not in {"run", "cache"} and argv[0] not in {"-h", "--help"}:
+    if argv and argv[0] not in {"run", "benchmark", "cache"} and argv[0] not in {"-h", "--help"}:
         return run_main(argv)
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.command == "run":
         return run_with_args(args)
+    if args.command == "benchmark":
+        return benchmark_main(args)
     if args.command == "cache":
         return cache_main(args)
     parser.print_help()
@@ -106,9 +125,9 @@ def run_with_args(args: argparse.Namespace) -> int:
             )
             return 2
 
-    documents = []
-    for input_path in args.input:
-        documents.extend(load_path_to_documents(input_path))
+    documents = load_documents_from_paths(args.input)
+    if args.split_input_sections:
+        documents = split_documents_into_section_documents(documents)
 
     if args.summary_mode == "rules":
         summarizer = RuleBasedExtractiveSummarizer()
@@ -147,6 +166,91 @@ def run_with_args(args: argparse.Namespace) -> int:
         sys.stdout.write(json.dumps(result.stats.model_dump(mode="json"), ensure_ascii=False, indent=2))
         sys.stdout.write("\n")
     return 0
+
+
+def benchmark_main(args: argparse.Namespace) -> int:
+    for input_path in [*args.input, *args.incremental_input]:
+        if is_http_url(input_path):
+            sys.stderr.write(
+                "URL fetching is not supported by benchmark inputs. "
+                "Pass a local file path, or include source/url metadata inside a JSON/XML payload.\n"
+            )
+            return 2
+
+    base_documents = load_documents_from_paths(args.input)
+    incremental_documents = load_documents_from_paths(args.incremental_input)
+    if args.split_input_sections:
+        base_documents = split_documents_into_section_documents(base_documents)
+        incremental_documents = split_documents_into_section_documents(incremental_documents)
+    scenarios = build_standard_scenarios(
+        base_documents=base_documents,
+        incremental_documents=incremental_documents,
+        modes=args.mode,
+    )
+    report = run_benchmark(
+        scenarios,
+        cache_dir=args.cache_dir,
+        summarizer=build_summarizer_from_args(args),
+        fresh_cache=args.fresh,
+    )
+    if args.json:
+        sys.stdout.write(json.dumps(report, ensure_ascii=False, indent=2))
+        sys.stdout.write("\n")
+    else:
+        write_benchmark_report(report)
+    return 0
+
+
+def load_documents_from_paths(paths: list[str] | None) -> list[DocumentInput]:
+    if not paths:
+        return []
+    documents = []
+    for input_path in paths:
+        documents.extend(load_path_to_documents(input_path))
+    return documents
+
+
+def build_summarizer_from_args(args: argparse.Namespace):
+    if args.summary_mode == "rules":
+        return RuleBasedExtractiveSummarizer()
+    return OpenAIStructuredSummarizer(
+        model=args.openai_model,
+        llm_config=LLMConfig(
+            timeout_seconds=args.llm_timeout,
+            max_retries=args.llm_max_retries,
+            max_input_tokens=args.llm_max_input_tokens,
+            max_output_tokens=args.llm_max_output_tokens,
+        ),
+    )
+
+
+def write_benchmark_report(report: dict) -> None:
+    sys.stdout.write("Document briefing cache benchmark\n")
+    sys.stdout.write(f"cache_dir: {report['cache_dir']}\n")
+    sys.stdout.write(f"scenarios: {report['scenario_count']}\n")
+    sys.stdout.write(f"naive_input_tokens_est: {report['naive_resummarize_every_run_input_tokens_est']}\n")
+    sys.stdout.write(f"cacheaware_input_tokens_est: {report['cacheaware_cache_miss_only_input_tokens_est']}\n")
+    sys.stdout.write(f"estimated_tokens_saved: {report['estimated_tokens_saved']}\n")
+    sys.stdout.write(f"estimated_savings_percent: {report['estimated_savings_percent']}\n")
+    sys.stdout.write(f"quality_warning_rows: {report.get('quality_warning_rows', 0)}\n")
+    sys.stdout.write(f"quality_warning_count: {report.get('quality_warning_count', 0)}\n")
+    sys.stdout.write(f"quality_unevaluated_rows: {report.get('quality_unevaluated_rows', 0)}\n")
+    sys.stdout.write("\n")
+    for row in report["rows"]:
+        quality_evaluated = row.get("quality", {}).get("evaluated", False)
+        quality_warnings = len(row.get("quality", {}).get("warnings", []))
+        sys.stdout.write(
+            "- "
+            f"{row['scenario']}: "
+            f"calls={row['summarizer_calls']}, "
+            f"hits={row['document_cache_hits']}, "
+            f"misses={row['document_cache_misses']}, "
+            f"out_hit={str(row['output_cache_hit']).lower()}, "
+            f"quality_evaluated={str(quality_evaluated).lower()}, "
+            f"quality_warnings={quality_warnings}, "
+            f"cacheaware_tokens={row['cacheaware_summarizer_input_token_estimate']}, "
+            f"elapsed_ms={row['elapsed_ms']}\n"
+        )
 
 
 def cache_main(args: argparse.Namespace) -> int:

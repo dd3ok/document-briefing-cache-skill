@@ -77,7 +77,8 @@ DocumentInput으로 정규화
 │   ├── architecture.md
 │   ├── schema.md
 │   ├── llm-contract.md
-│   └── best-practices.md
+│   ├── best-practices.md
+│   └── competitive-roadmap.md
 ├── examples/
 │   └── mixed_documents.json
 ├── evals/
@@ -154,6 +155,62 @@ python -m document_briefing_cache.cli run \
   --summary-mode rules \
   --show-stats
 ```
+
+## Benchmark repeated rendering
+
+Use the benchmark command to measure repeated rendering and incremental-document
+cache reuse with a fresh benchmark cache directory:
+
+```bash
+python -m document_briefing_cache.cli benchmark \
+  --input examples/mixed_documents.json \
+  --incremental-input examples/incident_update.json \
+  --cache-dir .cache/benchmark-demo \
+  --fresh \
+  --mode brief \
+  --mode digest \
+  --mode executive \
+  --mode action_items \
+  --json
+```
+
+For large Markdown-like inputs, add `--split-input-sections` to benchmark
+section-level document caching. This is useful when a report is updated by
+appending or editing one section: unchanged sections can keep their own
+document-summary cache entries instead of invalidating one monolithic document.
+Section splitting is order-sensitive: inserting or reordering sections before
+existing sections can change section ids and reduce cache hits. For incident,
+ticket, or PR-style feeds, prefer structured JSON records with stable ids when
+available.
+
+The report compares:
+
+- `naive_resummarize_every_run_input_tokens_est`: estimated input tokens if every scenario re-summarized every document.
+- `cacheaware_cache_miss_only_input_tokens_est`: estimated input tokens actually sent to the summarizer on document cache misses.
+- `summarizer_calls`: cache-miss summarizer calls per scenario.
+- `document_cache_hits` / `document_cache_misses`: document-level cache behavior.
+- `output_cache_hit`: final rendered-output cache behavior for exact same document set and mode.
+- `quality_warning_rows` / `quality_warning_count`: scenarios where the benchmark
+  found obvious source candidates that were not present in the structured state.
+- `quality_unevaluated_rows`: scenarios served from the rendered-output cache,
+  where structured summaries were not reloaded for quality coverage.
+- `rows[].quality`: lightweight structural coverage for obvious actions,
+  decisions, risks, and metrics. This is not a semantic accuracy score; it helps
+  catch cases where token savings hide shallow extraction.
+
+Quality warnings are smoke checks, not completeness or correctness scores. A
+run with zero warnings can still miss nuance. If a rendered-output cache hit
+marks quality as unevaluated, disable output caching or use debug output when
+you need to inspect structured-state coverage for that run.
+
+`--fresh` clears only the benchmark cache namespaces under `--cache-dir`
+(`document_summaries` and `rendered_outputs`); it does not delete the cache
+directory itself or unrelated files beside those namespaces.
+
+Token counts are deterministic estimates from the local benchmark harness, not
+provider billing telemetry. For live OpenAI-backed runs, use `--summary-mode
+openai` with the same benchmark command and compare provider-side usage or Codex
+CLI/OTel telemetry separately.
 
 ## Modes
 
@@ -244,6 +301,8 @@ When a document exceeds the input budget, the OpenAI adapter summarizes section-
 Privacy note: `rules` mode is local and token-free. LLM-backed summarizers send cache misses to the configured provider, such as OpenAI, and require the relevant API key. Cache directories are plaintext JSON and may persist structured summaries, names, IDs, dates, metrics, evidence quotes, sources, and rendered outputs. HMAC detects tampering but does not hide contents. Keep `.cache/` out of git, use encrypted storage or tmpfs when needed, and use `ephemeral`, `--redact-pii`, or explicit cache clearing for sensitive documents.
 
 Evidence note: `DocumentSummaryState` schema `1.1.0` requires evidence for the top-level summary and each section digest, in addition to evidence for key points, decisions, actions, risks, and metrics. Evidence quotes should be copied from the normalized source sections so validation can reject unsupported claims and stale `1.0.0` document-summary caches.
+
+Roadmap note: see [`references/competitive-roadmap.md`](references/competitive-roadmap.md) for the lightweight exact-cache roadmap, including which improvements are in scope, deferred, or rejected.
 
 ## Recommended production design
 

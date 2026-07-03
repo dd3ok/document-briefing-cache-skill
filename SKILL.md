@@ -28,6 +28,8 @@ Tradeoff: This skill optimizes repeated, document-grounded briefings. Do not use
 6. Render with `brief`, `executive`, `action_items`, `digest`, or `debug` templates.
 7. Report cache stats when useful.
 
+For large append-only or mostly stable Markdown-like documents, prefer `--split-input-sections` so unchanged sections can reuse document-summary cache entries. Do not treat it as stable identity for heavily reordered sections.
+
 ## When to call an LLM
 
 Call an LLM only when:
@@ -59,6 +61,7 @@ Start here. Open only what the task requires:
 - `src/document_briefing_cache/evidence.py`: protected values, evidence quotes, hallucination checks.
 - `references/schema.md`: extending `DocumentSummaryState`.
 - `references/llm-contract.md`: wiring LLM structured summarizers.
+- `references/competitive-roadmap.md`: lightweight roadmap boundaries and deferred/rejected improvement rationale.
 - `references/best-practices.md`: cache policy, production safety, eval guidance.
 - `scripts/validate_skill.py`, `evals/`, and `VALIDATION.md`: repository validation expectations.
 
