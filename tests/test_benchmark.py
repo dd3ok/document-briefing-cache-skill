@@ -130,6 +130,31 @@ def test_run_benchmark_fresh_cache_only_clears_cache_namespaces(tmp_path):
     assert not stale.exists()
 
 
+def test_run_benchmark_fresh_cache_unlinks_namespace_symlink(tmp_path):
+    cache_dir = tmp_path / "workspace"
+    cache_dir.mkdir()
+    target_dir = tmp_path / "outside-cache"
+    target_dir.mkdir()
+    protected = target_dir / "protected.txt"
+    protected.write_text("keep", encoding="utf-8")
+    namespace_link = cache_dir / "document_summaries"
+    try:
+        namespace_link.symlink_to(target_dir, target_is_directory=True)
+    except OSError as exc:
+        pytest.skip(f"directory symlink creation is unavailable: {exc}")
+
+    run_benchmark(
+        [BenchmarkScenario(name="cold brief", documents=sample_docs(), mode="brief")],
+        cache_dir=cache_dir,
+        summarizer=RuleBasedExtractiveSummarizer(),
+        fresh_cache=True,
+    )
+
+    assert namespace_link.is_dir()
+    assert not namespace_link.is_symlink()
+    assert protected.read_text(encoding="utf-8") == "keep"
+
+
 def test_run_benchmark_fresh_cache_rejects_file_path(tmp_path):
     cache_file = tmp_path / "cache-file"
     cache_file.write_text("not a directory", encoding="utf-8")
@@ -232,3 +257,15 @@ def test_cli_benchmark_can_split_input_sections(tmp_path, capsys):
 
     payload = json.loads(capsys.readouterr().out)
     assert payload["rows"][0]["documents"] == 2
+
+
+def test_cli_run_uses_shared_document_loader(tmp_path, capsys):
+    input_path = tmp_path / "ticket.json"
+    input_path.write_text(
+        json.dumps({"documents": [{"id": "ticket-1", "title": "Ticket", "content": "Action: Support should reply."}]}),
+        encoding="utf-8",
+    )
+
+    assert main(["--input", str(input_path), "--mode", "brief", "--cache-dir", str(tmp_path / "cache")]) == 0
+
+    assert "Support should reply" in capsys.readouterr().out

@@ -296,6 +296,7 @@ def split_documents_into_section_documents(documents: list[DocumentInput]) -> li
                     doc_type=document.doc_type,
                     content_format=document.content_format,
                     text=section.text,
+                    raw=document.raw,
                     metadata={
                         **document.metadata,
                         "parent_document_id": parent_id,

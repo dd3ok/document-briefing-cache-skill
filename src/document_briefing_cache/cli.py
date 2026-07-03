@@ -7,7 +7,7 @@ import sys
 from .benchmark import build_standard_scenarios, run_benchmark
 from .cache import merge_operation_results
 from .llm import LLMConfig
-from .models import CacheConfig
+from .models import CacheConfig, DocumentInput
 from .normalize import load_path_to_documents, split_documents_into_section_documents
 from .pipeline import BriefingPipeline
 from .summarizers import OpenAIStructuredSummarizer, RuleBasedExtractiveSummarizer
@@ -125,9 +125,7 @@ def run_with_args(args: argparse.Namespace) -> int:
             )
             return 2
 
-    documents = []
-    for input_path in args.input:
-        documents.extend(load_path_to_documents(input_path))
+    documents = load_documents_from_paths(args.input)
     if args.split_input_sections:
         documents = split_documents_into_section_documents(documents)
 
@@ -203,7 +201,9 @@ def benchmark_main(args: argparse.Namespace) -> int:
     return 0
 
 
-def load_documents_from_paths(paths: list[str]) -> list:
+def load_documents_from_paths(paths: list[str] | None) -> list[DocumentInput]:
+    if not paths:
+        return []
     documents = []
     for input_path in paths:
         documents.extend(load_path_to_documents(input_path))

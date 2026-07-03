@@ -1,4 +1,4 @@
-from document_briefing_cache.models import ContentFormat
+from document_briefing_cache.models import ContentFormat, DocumentInput
 from document_briefing_cache.normalize import normalize_payload, split_documents_into_section_documents, split_into_sections
 
 
@@ -42,11 +42,15 @@ def test_sections_split_on_markdown_headings():
 
 
 def test_split_documents_into_section_documents_preserves_parent_metadata():
-    docs = normalize_payload(
-        "# One\nAction: owner should update runbook.\n\n# Two\nRisk: rollout may slip.",
-        source="ops.md",
-        content_format="markdown",
-    )
+    raw = {"source": "system", "content": "# One\nAction: owner should update runbook.\n\n# Two\nRisk: rollout may slip."}
+    docs = [
+        DocumentInput(
+            source="ops.md",
+            content_format=ContentFormat.markdown,
+            text=raw["content"],
+            raw=raw,
+        )
+    ]
 
     split_docs = split_documents_into_section_documents(docs)
 
@@ -57,8 +61,10 @@ def test_split_documents_into_section_documents_preserves_parent_metadata():
     assert split_docs[0].metadata["parent_document_id"] == "ops.md"
     assert split_docs[0].metadata["section_id"] == "section-1"
     assert "update runbook" in split_docs[0].text
+    assert split_docs[0].raw == raw
     assert split_docs[1].document_id == "ops.md#section-2"
     assert split_docs[1].title == "Two"
+    assert split_docs[1].raw == raw
 
 
 def test_url_fields_are_preserved_as_source_metadata_without_fetching():

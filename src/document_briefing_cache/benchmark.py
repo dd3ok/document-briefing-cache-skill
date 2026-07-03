@@ -151,7 +151,9 @@ def clear_benchmark_cache(cache_path: Path) -> None:
 
     for namespace in BENCHMARK_CACHE_NAMESPACES:
         namespace_path = cache_path / namespace
-        if namespace_path.is_dir():
+        if namespace_path.is_symlink():
+            namespace_path.unlink()
+        elif namespace_path.is_dir():
             shutil.rmtree(namespace_path)
         elif namespace_path.exists():
             namespace_path.unlink()
