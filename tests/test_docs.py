@@ -60,3 +60,16 @@ def test_readme_documents_redaction_scope_and_security_limits():
     assert "tmpfs" in combined
     assert "tamper detection only" in combined
     assert "not encryption" in combined
+
+
+def test_readme_documents_secret_redaction_scope_and_sensitive_boundary():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+
+    assert "--redact-secrets" in readme
+    assert "basic-secrets-v1" in readme
+    assert "bearer tokens" in readme
+    assert "API keys" in readme
+    assert "webhook URLs" in readme
+    assert "card-like values" in readme
+    assert "best-effort" in readme
+    assert "not included in --sensitive" in readme

@@ -400,9 +400,9 @@ Acceptance evidence:
 - Cache lifecycle tests verify no document summaries or rendered outputs persist after the run.
 - Docs clearly state redaction is best-effort and not complete DLP.
 
-Deferred extension:
+Thin extension:
 
-`--redact-secrets` may be added later as an optional best-effort regex profile for bearer tokens, API keys, webhook secrets, session ids, and card-like values. Do not bundle it into `--sensitive` until its false-positive behavior is tested.
+`--redact-secrets` is an optional best-effort profile for bearer tokens, API keys, webhook URLs, and Luhn-valid card-like values. It remains outside `--sensitive` so secret scanning stays explicit and separately testable.
 
 ## Deferred Items
 

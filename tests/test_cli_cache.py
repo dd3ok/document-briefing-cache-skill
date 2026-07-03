@@ -73,6 +73,51 @@ def test_cli_run_supports_redaction_and_hmac_flags(tmp_path, capsys, monkeypatch
     assert "010-1234-5678" not in cache_text
 
 
+def test_cli_run_supports_secret_redaction_without_pii_redaction(tmp_path, capsys):
+    input_path = tmp_path / "secrets.json"
+    input_path.write_text(
+        json.dumps(
+            {
+                "documents": [
+                    {
+                        "id": "ticket-secrets",
+                        "title": "Secret cleanup",
+                        "content": (
+                            "Action: Security should rotate api_key=sk_test_123456789abcdef "
+                            "and notify alice@example.com."
+                        ),
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    cache_dir = tmp_path / "cache"
+
+    assert main(
+        [
+            "run",
+            "-i",
+            str(input_path),
+            "--cache-dir",
+            str(cache_dir),
+            "--redact-secrets",
+            "--show-stats",
+        ]
+    ) == 0
+
+    output = capsys.readouterr().out
+    stats = json.loads(output.split("--- stats ---", 1)[1])
+    assert "sk_test_123456789abcdef" not in output
+    assert "REDACTED:secret" in output
+    assert "alice@example.com" in output
+    assert stats["secret_redactions"] >= 1
+    assert stats["pii_redactions"] == 0
+
+    cache_text = "\n".join(path.read_text(encoding="utf-8") for path in cache_dir.rglob("*.json"))
+    assert "sk_test_123456789abcdef" not in cache_text
+
+
 def test_cli_cache_prune_does_not_delete_signed_entries_without_secret(tmp_path, capsys):
     cache_dir = tmp_path / "cache"
     JsonFileCache(cache_dir, "document_summaries", hmac_secret="secret").set_json("signed", {"value": 1}, ttl_seconds=3600)
