@@ -71,5 +71,6 @@ def test_readme_documents_secret_redaction_scope_and_sensitive_boundary():
     assert "API keys" in readme
     assert "webhook URLs" in readme
     assert "card-like values" in readme
+    assert "secret-shaped JSON keys" in readme
     assert "best-effort" in readme
     assert "not included in --sensitive" in readme

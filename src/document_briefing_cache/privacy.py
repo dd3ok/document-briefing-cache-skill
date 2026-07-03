@@ -26,6 +26,10 @@ SECRET_ASSIGNMENT_PATTERN = re.compile(
     r"(?P=quote)",
     flags=re.IGNORECASE,
 )
+SECRET_FIELD_PATTERN = re.compile(
+    r"^(?:api[_-]?key|access[_-]?token|refresh[_-]?token|auth[_-]?token|client[_-]?secret|webhook[_-]?secret|session[_-]?id|secret)$",
+    flags=re.IGNORECASE,
+)
 BEARER_TOKEN_PATTERN = re.compile(r"\bBearer\s+[A-Za-z0-9._~+/=-]{12,}\b", flags=re.IGNORECASE)
 WEBHOOK_URL_PATTERN = re.compile(r"https://hooks\.slack\.com/services/[A-Za-z0-9/_-]{12,}", flags=re.IGNORECASE)
 CARD_CANDIDATE_PATTERN = re.compile(r"(?<!\d)(?:\d[ -]?){13,19}(?!\d)")
@@ -143,6 +147,10 @@ def redact_configured_data(value: Any, *, redact_pii: bool, redact_secrets: bool
         pii_total = 0
         secret_total = 0
         for key, item in value.items():
+            if redact_secrets and isinstance(key, str) and SECRET_FIELD_PATTERN.match(key) and isinstance(item, str) and item:
+                redacted_dict[key] = "[REDACTED:secret]"
+                secret_total += 1
+                continue
             redacted_item, pii_count, secret_count = redact_configured_data(
                 item,
                 redact_pii=redact_pii,
