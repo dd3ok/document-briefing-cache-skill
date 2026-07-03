@@ -61,7 +61,12 @@ class BriefingPipeline:
         locale: str = "ko-KR",
         use_output_cache: bool | None = None,
     ) -> PipelineResult:
-        stats = PipelineStats(input_documents=len(documents), rendered_mode=mode, cache_policy=self.cache_config.policy)
+        stats = PipelineStats(
+            input_documents=len(documents),
+            rendered_mode=mode,
+            cache_policy=self.cache_config.policy,
+            sensitive_mode=self.cache_config.sensitive_mode,
+        )
         if self.cache_config.prune_on_start:
             pruned = self.prune()
             stats.entries_pruned += pruned.entries_deleted
