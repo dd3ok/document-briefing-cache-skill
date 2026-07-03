@@ -277,6 +277,37 @@ def split_into_sections(text: str, max_chars: int = 2500) -> list[DocumentSectio
     return sections
 
 
+def split_documents_into_section_documents(documents: list[DocumentInput]) -> list[DocumentInput]:
+    split_documents: list[DocumentInput] = []
+    for index, document in enumerate(documents):
+        sections = split_into_sections(document.text or "")
+        if len(sections) <= 1:
+            split_documents.append(document)
+            continue
+
+        parent_id = document.document_id or document.source or f"document-{index}"
+        for section in sections:
+            section_id = f"section-{section.order + 1}"
+            split_documents.append(
+                DocumentInput(
+                    document_id=f"{parent_id}#{section_id}",
+                    title=section.heading or document.title,
+                    source=document.source,
+                    doc_type=document.doc_type,
+                    content_format=document.content_format,
+                    text=section.text,
+                    metadata={
+                        **document.metadata,
+                        "parent_document_id": parent_id,
+                        "parent_title": document.title,
+                        "section_id": section_id,
+                        "section_heading": section.heading,
+                    },
+                )
+            )
+    return split_documents
+
+
 def chunk_text(text: str, heading: str | None, start_order: int, max_chars: int) -> list[DocumentSection]:
     paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
     chunks: list[str] = []

@@ -155,6 +155,53 @@ python -m document_briefing_cache.cli run \
   --show-stats
 ```
 
+## Benchmark repeated rendering
+
+Use the benchmark command to measure repeated rendering and incremental-document
+cache reuse with a fresh benchmark cache directory:
+
+```bash
+python -m document_briefing_cache.cli benchmark \
+  --input examples/mixed_documents.json \
+  --incremental-input examples/incident_update.json \
+  --cache-dir .cache/benchmark-demo \
+  --fresh \
+  --mode brief \
+  --mode digest \
+  --mode executive \
+  --mode action_items \
+  --json
+```
+
+For large Markdown-like inputs, add `--split-input-sections` to benchmark
+section-level document caching. This is useful when a report is updated by
+appending or editing one section: unchanged sections can keep their own
+document-summary cache entries instead of invalidating one monolithic document.
+
+The report compares:
+
+- `naive_resummarize_every_run_input_tokens_est`: estimated input tokens if every scenario re-summarized every document.
+- `cacheaware_cache_miss_only_input_tokens_est`: estimated input tokens actually sent to the summarizer on document cache misses.
+- `summarizer_calls`: cache-miss summarizer calls per scenario.
+- `document_cache_hits` / `document_cache_misses`: document-level cache behavior.
+- `output_cache_hit`: final rendered-output cache behavior for exact same document set and mode.
+- `quality_warning_rows` / `quality_warning_count`: scenarios where the benchmark
+  found obvious source candidates that were not present in the structured state.
+- `quality_unevaluated_rows`: scenarios served from the rendered-output cache,
+  where structured summaries were not reloaded for quality coverage.
+- `rows[].quality`: lightweight structural coverage for obvious actions,
+  decisions, risks, and metrics. This is not a semantic accuracy score; it helps
+  catch cases where token savings hide shallow extraction.
+
+`--fresh` clears only the benchmark cache namespaces under `--cache-dir`
+(`document_summaries` and `rendered_outputs`); it does not delete the cache
+directory itself or unrelated files beside those namespaces.
+
+Token counts are deterministic estimates from the local benchmark harness, not
+provider billing telemetry. For live OpenAI-backed runs, use `--summary-mode
+openai` with the same benchmark command and compare provider-side usage or Codex
+CLI/OTel telemetry separately.
+
 ## Modes
 
 - `brief`: standard multi-document briefing
