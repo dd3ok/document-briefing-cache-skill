@@ -1,5 +1,6 @@
 from document_briefing_cache.hashing import document_content_fingerprint, document_summary_cache_key, output_cache_key
 from document_briefing_cache.models import DocumentInput
+from document_briefing_cache.normalize import normalize_payload
 
 
 def test_fingerprint_is_stable_for_whitespace_changes():
@@ -12,6 +13,17 @@ def test_fingerprint_changes_when_content_changes():
     a = DocumentInput(title="A", text="Number: 10")
     b = DocumentInput(title="A", text="Number: 11")
     assert document_content_fingerprint(a) != document_content_fingerprint(b)
+
+
+def test_fingerprint_is_stable_for_utf8_bom_json_payload():
+    plain_doc = normalize_payload(
+        '{"documents":[{"id":"doc-1","title":"BOM JSON","content":"Action: owner should reply."}]}'
+    )[0]
+    bom_doc = normalize_payload(
+        '\ufeff{"documents":[{"id":"doc-1","title":"BOM JSON","content":"Action: owner should reply."}]}'
+    )[0]
+
+    assert document_content_fingerprint(plain_doc) == document_content_fingerprint(bom_doc)
 
 
 def test_output_cache_key_changes_by_mode():

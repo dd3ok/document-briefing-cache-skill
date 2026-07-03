@@ -29,6 +29,31 @@ def test_cli_run_explain_cache_outputs_document_events(tmp_path, capsys):
     assert "Output cache:" in output
 
 
+def test_cli_run_accepts_utf8_bom_json_file(tmp_path, capsys):
+    input_path = tmp_path / "bom.json"
+    input_path.write_bytes(
+        b'\xef\xbb\xbf{"documents":[{"id":"doc-1","title":"BOM JSON","content":"Action: owner should reply."}]}'
+    )
+
+    assert main(
+        [
+            "--input",
+            str(input_path),
+            "--cache-dir",
+            str(tmp_path / "cache"),
+            "--show-stats",
+            "--explain-cache",
+        ]
+    ) == 0
+
+    output = capsys.readouterr().out
+    stats = json.loads(output.split("--- stats ---", 1)[1].split("\n## Cache explanation", 1)[0])
+    assert "BOM JSON" in output
+    assert stats["summarizer_calls"] == 1
+    assert stats["document_cache_misses"] == 1
+    assert re.search(r"\| doc-1 \| [0-9a-f]{12} \| miss \| miss_new_fingerprint \|", output)
+
+
 def test_cli_run_explain_cache_outputs_output_hit_reason(tmp_path, capsys):
     input_path = tmp_path / "doc.json"
     input_path.write_text(
