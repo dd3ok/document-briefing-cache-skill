@@ -11,7 +11,16 @@ from .hashing import (
     output_cache_key,
     stable_document_id,
 )
-from .models import DOCUMENT_SUMMARY_SCHEMA_VERSION, CacheConfig, DocumentInput, DocumentSummaryState, PipelineResult, PipelineStats
+from .models import (
+    DOCUMENT_SUMMARY_SCHEMA_VERSION,
+    CacheConfig,
+    DocumentCacheEvent,
+    DocumentInput,
+    DocumentSummaryState,
+    OutputCacheEvent,
+    PipelineResult,
+    PipelineStats,
+)
 from .normalize import NORMALIZATION_UNKNOWNS_KEY, split_into_sections
 from .privacy import redact_document_input, redaction_policy_id
 from .render import TEMPLATE_VERSION, render_briefing
@@ -79,13 +88,35 @@ class BriefingPipeline:
         stats.cache_keys["output"] = out_key
 
         try:
+            if not effective_output_cache:
+                stats.output_cache_event = OutputCacheEvent(
+                    cache_key_prefix=out_key[:12],
+                    status="disabled",
+                    reason="output_disabled_normalization_unknowns" if has_normalization_unknowns else "output_disabled",
+                )
+            elif not can_read:
+                stats.output_cache_event = OutputCacheEvent(
+                    cache_key_prefix=out_key[:12],
+                    status="disabled",
+                    reason="output_read_skipped_policy",
+                )
             if effective_output_cache and can_read:
                 output_result = self.output_cache.get_text_with_status(out_key, update_accessed=can_write)
                 if output_result.status == "hit":
                     stats.output_cache_hit = True
+                    stats.output_cache_event = OutputCacheEvent(
+                        cache_key_prefix=out_key[:12],
+                        status="hit",
+                        reason="output_hit_same_render_key",
+                    )
                     return PipelineResult(output=output_result.value, summaries=[], stats=stats)
                 if output_result.status == "expired":
                     stats.output_cache_expired += 1
+                stats.output_cache_event = OutputCacheEvent(
+                    cache_key_prefix=out_key[:12],
+                    status=output_result.status,
+                    reason=self._output_cache_reason(output_result.status),
+                )
 
             summaries: list[DocumentSummaryState] = []
             has_validation_errors = False
@@ -105,14 +136,41 @@ class BriefingPipeline:
                 stats.cache_keys[f"document:{fingerprint[:12]}"] = summary_key
                 cached: DocumentSummaryState | None = None
                 status = "miss"
+                event_status = "miss"
+                event_reason = "miss_new_fingerprint"
                 if self.cache_config.document_cache and can_read:
                     cached, status = self.document_cache.get_model_with_status(summary_key, DocumentSummaryState, update_accessed=can_write)
+                    event_status = status
+                    event_reason = self._document_cache_reason(status)
+                elif not self.cache_config.document_cache:
+                    event_reason = "miss_cache_disabled"
+                elif self.cache_config.policy == "refresh":
+                    event_status = "refresh"
+                    event_reason = "miss_refresh_policy"
+                elif self.cache_config.policy == "bypass":
+                    event_status = "bypass"
+                    event_reason = "miss_bypass_policy"
+                elif self.cache_config.policy == "ephemeral":
+                    event_status = "ephemeral"
+                    event_reason = "miss_ephemeral_policy"
                 if cached is not None:
                     if not self._cached_summary_matches(summary_document, cached, fingerprint):
                         stats.document_cache_corrupt += 1
                         cached = None
+                        event_status = "corrupt"
+                        event_reason = "rejected_contract_mismatch"
                     else:
                         stats.document_cache_hits += 1
+                        stats.document_cache_events.append(
+                            self._document_cache_event(
+                                document=summary_document,
+                                fingerprint=fingerprint,
+                                cache_key=summary_key,
+                                status="hit",
+                                reason="hit_same_contract",
+                                redaction_policy_id=privacy_profile,
+                            )
+                        )
                         summaries.append(self._summary_with_normalization_unknowns(cached, summary_document))
                         continue
                 if status == "corrupt":
@@ -121,6 +179,16 @@ class BriefingPipeline:
                     stats.document_cache_expired += 1
 
                 stats.document_cache_misses += 1
+                stats.document_cache_events.append(
+                    self._document_cache_event(
+                        document=summary_document,
+                        fingerprint=fingerprint,
+                        cache_key=summary_key,
+                        status=event_status,
+                        reason=event_reason,
+                        redaction_policy_id=privacy_profile,
+                    )
+                )
                 sections = split_into_sections(summary_document.text or "")
                 summary = self.summarizer.summarize(summary_document, sections, fingerprint)
                 stats.summarizer_calls += 1
@@ -202,6 +270,43 @@ class BriefingPipeline:
             and summary.content_fingerprint == fingerprint
             and summary.summarizer_id == self.summarizer.summarizer_id
         )
+
+    def _document_cache_event(
+        self,
+        document: DocumentInput,
+        fingerprint: str,
+        cache_key: str,
+        status: str,
+        reason: str,
+        redaction_policy_id: str,
+    ) -> DocumentCacheEvent:
+        return DocumentCacheEvent(
+            document_id=stable_document_id(document, fingerprint),
+            title=document.title,
+            fingerprint_prefix=fingerprint[:12],
+            cache_key_prefix=cache_key[:12],
+            status=status,
+            reason=reason,
+            summarizer_id=self.summarizer.summarizer_id,
+            schema_version=DOCUMENT_SUMMARY_SCHEMA_VERSION,
+            redaction_policy_id=redaction_policy_id,
+        )
+
+    def _document_cache_reason(self, status: str) -> str:
+        if status == "hit":
+            return "hit_same_contract"
+        if status == "expired":
+            return "expired_ttl"
+        if status == "corrupt":
+            return "corrupt_validation_failed"
+        return "miss_new_fingerprint"
+
+    def _output_cache_reason(self, status: str) -> str:
+        if status == "expired":
+            return "output_expired_ttl"
+        if status == "corrupt":
+            return "output_corrupt_validation_failed"
+        return "output_miss"
 
     def _summary_with_normalization_unknowns(self, summary: DocumentSummaryState, document: DocumentInput) -> DocumentSummaryState:
         normalization_unknowns = self._normalization_unknowns(document)

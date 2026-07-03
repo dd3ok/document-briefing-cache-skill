@@ -136,7 +136,8 @@ python -m document_briefing_cache.cli run \
   --mode brief \
   --cache-dir .cache \
   --summary-mode rules \
-  --show-stats
+  --show-stats \
+  --explain-cache
 ```
 
 Run the same command again. You should see no summarizer calls for repeated content.
@@ -161,6 +162,10 @@ python -m document_briefing_cache.cli run \
 Use the benchmark command to measure repeated rendering and incremental-document
 cache reuse with a fresh benchmark cache directory:
 
+Demo first: [`examples/incident_lifecycle/`](examples/incident_lifecycle/) shows
+the cold run, template rerender, and add-one-update workflow with expected cache
+stats.
+
 ```bash
 python -m document_briefing_cache.cli benchmark \
   --input examples/mixed_documents.json \
@@ -181,7 +186,11 @@ document-summary cache entries instead of invalidating one monolithic document.
 Section splitting is order-sensitive: inserting or reordering sections before
 existing sections can change section ids and reduce cache hits. For incident,
 ticket, or PR-style feeds, prefer structured JSON records with stable ids when
-available.
+available. For plain incident logs that contain stable incident IDs, add
+`--split-records incident` to split each incident/update record before caching.
+
+Use `--explain-cache` on `run` when you need per-document hit/miss reasons and
+the rendered-output cache result, instead of only aggregate stats.
 
 The report compares:
 
@@ -245,14 +254,13 @@ For sensitive documents:
 export DBC_CACHE_HMAC_SECRET="replace-with-a-local-secret"
 python -m document_briefing_cache.cli run \
   --input sensitive.json \
-  --cache-policy ephemeral \
-  --no-output-cache \
-  --delete-on-exit created \
-  --redact-pii \
+  --sensitive \
   --cache-hmac-secret-env DBC_CACHE_HMAC_SECRET
 ```
 
-For sensitive documents, the safe default is no persistent cache: use `--cache-policy ephemeral --no-output-cache --redact-pii` and add `--delete-on-exit created` when temporary cache files should be removed after the run.
+For sensitive documents, the safe default is no persistent cache. `--sensitive`
+is a convenience alias for `--cache-policy ephemeral --no-output-cache
+--redact-pii --delete-on-exit created`.
 
 `--redact-pii` applies the built-in `basic-contact-v1` redaction profile before cache misses are summarized, and redacted/non-redacted cache keys are separated. The current profile covers common email addresses, Korean mobile numbers, and US phone numbers. It is not a complete PII detector for names, addresses, national IDs, account numbers, cards, API keys, or access tokens.
 

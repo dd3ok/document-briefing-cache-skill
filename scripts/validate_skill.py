@@ -224,7 +224,7 @@ def validate_openai_yaml(path: Path) -> list[str]:
         'version: "0.3.1"',
         "interface:",
         'display_name: "Document Briefing Cache"',
-        'short_description: "Cached structured document briefings"',
+        'short_description: "Rerender cached structured briefings without re-summarizing unchanged documents."',
         "$document-briefing-cache",
         "policy:",
         "allow_implicit_invocation: true",

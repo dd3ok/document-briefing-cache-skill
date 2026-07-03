@@ -8,7 +8,7 @@ from .benchmark import build_standard_scenarios, run_benchmark
 from .cache import merge_operation_results
 from .llm import LLMConfig
 from .models import CacheConfig, DocumentInput
-from .normalize import load_path_to_documents, split_documents_into_section_documents
+from .normalize import load_path_to_documents, split_documents_into_incident_records, split_documents_into_section_documents
 from .pipeline import BriefingPipeline
 from .summarizers import OpenAIStructuredSummarizer, RuleBasedExtractiveSummarizer
 
@@ -26,6 +26,7 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--locale", default="ko-KR")
     parser.add_argument("--cache-dir", default=".cache")
     parser.add_argument("--summary-mode", default="rules", choices=["rules", "openai"])
+    parser.add_argument("--split-records", default="none", choices=["none", "incident"], help="Split stable operational records before caching.")
     parser.add_argument("--split-input-sections", action="store_true", help="Split multi-section inputs into section-level documents before caching.")
     parser.add_argument("--openai-model", default=None)
     parser.add_argument("--llm-timeout", type=float, default=60.0)
@@ -34,6 +35,7 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--llm-max-output-tokens", type=int, default=4000)
     parser.add_argument("--no-output-cache", action="store_true")
     parser.add_argument("--cache-policy", default="read_write", choices=["read_write", "read_only", "refresh", "bypass", "ephemeral", "ttl", "persistent"])
+    parser.add_argument("--sensitive", action="store_true", help="Alias for ephemeral cache, no output cache, PII redaction, and delete-on-exit for created files.")
     parser.add_argument("--document-ttl", default="30d")
     parser.add_argument("--output-ttl", default="24h")
     parser.add_argument("--prune-on-start", action="store_true")
@@ -42,6 +44,7 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--redact-pii", action="store_true", help="Redact basic contact PII before summarization and cache writes.")
     parser.add_argument("--cache-hmac-secret-env", default=None, help="Environment variable containing the cache HMAC signing secret.")
     parser.add_argument("--show-stats", action="store_true")
+    parser.add_argument("--explain-cache", action="store_true", help="Print per-document cache hit/miss reasons after rendering.")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -57,6 +60,7 @@ def build_parser() -> argparse.ArgumentParser:
     benchmark_parser.add_argument("--cache-dir", default=".cache/benchmark")
     benchmark_parser.add_argument("--fresh", action="store_true", help="Clear the benchmark cache directory before running.")
     benchmark_parser.add_argument("--summary-mode", default="rules", choices=["rules", "openai"])
+    benchmark_parser.add_argument("--split-records", default="none", choices=["none", "incident"], help="Split stable operational records before benchmarking.")
     benchmark_parser.add_argument("--split-input-sections", action="store_true", help="Split multi-section inputs into section-level documents before benchmarking.")
     benchmark_parser.add_argument("--openai-model", default=None)
     benchmark_parser.add_argument("--llm-timeout", type=float, default=60.0)
@@ -117,6 +121,7 @@ def is_http_url(value: str) -> bool:
 
 
 def run_with_args(args: argparse.Namespace) -> int:
+    apply_sensitive_alias(args)
     for input_path in args.input:
         if is_http_url(input_path):
             sys.stderr.write(
@@ -126,8 +131,7 @@ def run_with_args(args: argparse.Namespace) -> int:
             return 2
 
     documents = load_documents_from_paths(args.input)
-    if args.split_input_sections:
-        documents = split_documents_into_section_documents(documents)
+    documents = split_documents_for_args(documents, args)
 
     if args.summary_mode == "rules":
         summarizer = RuleBasedExtractiveSummarizer()
@@ -165,7 +169,18 @@ def run_with_args(args: argparse.Namespace) -> int:
         sys.stdout.write("\n--- stats ---\n")
         sys.stdout.write(json.dumps(result.stats.model_dump(mode="json"), ensure_ascii=False, indent=2))
         sys.stdout.write("\n")
+    if args.explain_cache:
+        write_cache_explanation(result.stats)
     return 0
+
+
+def apply_sensitive_alias(args: argparse.Namespace) -> None:
+    if not getattr(args, "sensitive", False):
+        return
+    args.cache_policy = "ephemeral"
+    args.no_output_cache = True
+    args.redact_pii = True
+    args.delete_on_exit = "created"
 
 
 def benchmark_main(args: argparse.Namespace) -> int:
@@ -179,9 +194,8 @@ def benchmark_main(args: argparse.Namespace) -> int:
 
     base_documents = load_documents_from_paths(args.input)
     incremental_documents = load_documents_from_paths(args.incremental_input)
-    if args.split_input_sections:
-        base_documents = split_documents_into_section_documents(base_documents)
-        incremental_documents = split_documents_into_section_documents(incremental_documents)
+    base_documents = split_documents_for_args(base_documents, args)
+    incremental_documents = split_documents_for_args(incremental_documents, args)
     scenarios = build_standard_scenarios(
         base_documents=base_documents,
         incremental_documents=incremental_documents,
@@ -207,6 +221,14 @@ def load_documents_from_paths(paths: list[str] | None) -> list[DocumentInput]:
     documents = []
     for input_path in paths:
         documents.extend(load_path_to_documents(input_path))
+    return documents
+
+
+def split_documents_for_args(documents: list[DocumentInput], args: argparse.Namespace) -> list[DocumentInput]:
+    if args.split_records == "incident":
+        documents = split_documents_into_incident_records(documents)
+    if args.split_input_sections:
+        documents = split_documents_into_section_documents(documents)
     return documents
 
 
@@ -251,6 +273,28 @@ def write_benchmark_report(report: dict) -> None:
             f"cacheaware_tokens={row['cacheaware_summarizer_input_token_estimate']}, "
             f"elapsed_ms={row['elapsed_ms']}\n"
         )
+
+
+def write_cache_explanation(stats) -> None:
+    sys.stdout.write("\n## Cache explanation\n\n")
+    sys.stdout.write("| Document | Fingerprint | Result | Reason |\n")
+    sys.stdout.write("| --- | --- | --- | --- |\n")
+    for event in stats.document_cache_events:
+        sys.stdout.write(
+            f"| {event.document_id} | {event.fingerprint_prefix} | {event.status} | {event.reason} |\n"
+        )
+    if not stats.document_cache_events:
+        if stats.output_cache_hit:
+            sys.stdout.write("| n/a | n/a | n/a | output cache hit before document cache lookup |\n")
+        else:
+            sys.stdout.write("| n/a | n/a | n/a | no document cache events recorded |\n")
+    sys.stdout.write("\nOutput cache:\n")
+    if stats.output_cache_event is None:
+        sys.stdout.write("- result: n/a\n")
+        sys.stdout.write("- reason: output_disabled\n")
+    else:
+        sys.stdout.write(f"- result: {stats.output_cache_event.status}\n")
+        sys.stdout.write(f"- reason: {stats.output_cache_event.reason}\n")
 
 
 def cache_main(args: argparse.Namespace) -> int:

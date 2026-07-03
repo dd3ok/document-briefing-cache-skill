@@ -27,13 +27,31 @@
               "document_cache_hits": 0,
               "document_cache_misses": 1
             },
-            "contains": ["PAY-482", "2026-05-10", "183 ms"],
-            "not_contains": ["PAY-483", "2026-05-11"],
+            "contains": [
+              "PAY-482",
+              "2026-05-10",
+              "183 ms"
+            ],
+            "not_contains": [
+              "PAY-483",
+              "2026-05-11"
+            ],
             "summary_state": {
-              "actions_contains": ["PAY-482", "2026-05-10"],
-              "risks_contains": ["gateway latency"],
-              "metrics_contains": ["183", "ms"],
-              "evidence_contains": ["PAY-482", "183 ms"]
+              "actions_contains": [
+                "PAY-482",
+                "2026-05-10"
+              ],
+              "risks_contains": [
+                "gateway latency"
+              ],
+              "metrics_contains": [
+                "183",
+                "ms"
+              ],
+              "evidence_contains": [
+                "PAY-482",
+                "183 ms"
+              ]
             }
           }
         },
@@ -48,11 +66,21 @@
               "document_cache_hits": 1,
               "document_cache_misses": 0
             },
-            "contains": ["PAY-482", "2026-05-10"],
-            "not_contains": ["PAY-483"],
+            "contains": [
+              "PAY-482",
+              "2026-05-10"
+            ],
+            "not_contains": [
+              "PAY-483"
+            ],
             "summary_state": {
-              "actions_contains": ["PAY-482", "2026-05-10"],
-              "evidence_contains": ["PAY-482"]
+              "actions_contains": [
+                "PAY-482",
+                "2026-05-10"
+              ],
+              "evidence_contains": [
+                "PAY-482"
+              ]
             }
           }
         }
@@ -89,12 +117,28 @@
               "document_cache_hits": 0,
               "document_cache_misses": 1
             },
-            "contains": ["INC-2026-042", "2.4%", "2026-05-12"],
-            "not_contains": ["2.5%", "2026-05-13"],
+            "contains": [
+              "INC-2026-042",
+              "2.4%",
+              "2026-05-12"
+            ],
+            "not_contains": [
+              "2.5%",
+              "2026-05-13"
+            ],
             "summary_state": {
-              "actions_contains": ["Rollback", "2026-05-12"],
-              "metrics_contains": ["2.4", "%"],
-              "evidence_contains": ["INC-2026-042", "2.4%"]
+              "actions_contains": [
+                "Rollback",
+                "2026-05-12"
+              ],
+              "metrics_contains": [
+                "2.4",
+                "%"
+              ],
+              "evidence_contains": [
+                "INC-2026-042",
+                "2.4%"
+              ]
             }
           }
         }
@@ -126,12 +170,24 @@
               "document_cache_hits": 0,
               "document_cache_misses": 1
             },
-            "contains": ["INC-2026-077", "2026-05-12"],
-            "not_contains": ["INC-2026-078"],
+            "contains": [
+              "INC-2026-077",
+              "2026-05-12"
+            ],
+            "not_contains": [
+              "INC-2026-078"
+            ],
             "summary_state": {
-              "actions_contains": ["Security", "2026-05-12"],
-              "metrics_contains": ["12"],
-              "evidence_contains": ["INC-2026-077"]
+              "actions_contains": [
+                "Security",
+                "2026-05-12"
+              ],
+              "metrics_contains": [
+                "12"
+              ],
+              "evidence_contains": [
+                "INC-2026-077"
+              ]
             }
           }
         }
@@ -169,13 +225,31 @@
               "document_cache_hits": 0,
               "document_cache_misses": 2
             },
-            "contains": ["INC-2026-091", "SUP-918", "2026-05-13", "2 days"],
-            "not_contains": ["INC-2026-092"],
+            "contains": [
+              "INC-2026-091",
+              "SUP-918",
+              "2026-05-13",
+              "2 days"
+            ],
+            "not_contains": [
+              "INC-2026-092"
+            ],
             "summary_state": {
-              "actions_contains": ["SUP-918", "2026-05-13"],
-              "risks_contains": ["P1 support backlog"],
-              "metrics_contains": ["37", "14"],
-              "evidence_contains": ["INC-2026-091", "SUP-918"]
+              "actions_contains": [
+                "SUP-918",
+                "2026-05-13"
+              ],
+              "risks_contains": [
+                "P1 support backlog"
+              ],
+              "metrics_contains": [
+                "37",
+                "14"
+              ],
+              "evidence_contains": [
+                "INC-2026-091",
+                "SUP-918"
+              ]
             }
           }
         }
@@ -206,13 +280,27 @@
               "document_cache_hits": 0,
               "document_cache_misses": 1
             },
-            "contains": ["2026-05-15"],
-            "not_contains": ["2026-05-16"],
+            "contains": [
+              "2026-05-15"
+            ],
+            "not_contains": [
+              "2026-05-16"
+            ],
             "summary_state": {
-              "actions_contains": ["launch checklist", "2026-05-15"],
-              "risks_contains": ["migration delay"],
-              "metrics_contains": ["240", "sec"],
-              "evidence_contains": ["rollback communications"]
+              "actions_contains": [
+                "launch checklist",
+                "2026-05-15"
+              ],
+              "risks_contains": [
+                "migration delay"
+              ],
+              "metrics_contains": [
+                "240",
+                "sec"
+              ],
+              "evidence_contains": [
+                "rollback communications"
+              ]
             }
           }
         }
@@ -244,12 +332,180 @@
               "document_cache_hits": 0,
               "document_cache_misses": 1
             },
-            "contains": ["REDACTED:email", "REDACTED:phone", "2026-05-16"],
-            "not_contains": ["bob@example.com", "010-2222-3333"],
+            "contains": [
+              "REDACTED:email",
+              "REDACTED:phone",
+              "2026-05-16"
+            ],
+            "not_contains": [
+              "bob@example.com",
+              "010-2222-3333"
+            ],
             "summary_state": {
-              "actions_contains": ["[REDACTED:email]", "[REDACTED:phone]", "2026-05-16"],
-              "risks_contains": ["response delay"],
-              "evidence_contains": ["[REDACTED:email]", "[REDACTED:phone]"]
+              "actions_contains": [
+                "[REDACTED:email]",
+                "[REDACTED:phone]",
+                "2026-05-16"
+              ],
+              "risks_contains": [
+                "response delay"
+              ],
+              "evidence_contains": [
+                "[REDACTED:email]",
+                "[REDACTED:phone]"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "incident-nuance-mitigated-not-resolved",
+      "input": {
+        "documents": [
+          {
+            "document_id": "INC-2026-170",
+            "title": "Payment incident mitigation update",
+            "doc_type": "log",
+            "content_format": "text",
+            "text": "Incident INC-2026-170 status: mitigated, not resolved. Decision: keep monitoring for 30 minutes before closing the incident. Action: SRE owner Hana should confirm error rate remains below 1% by 2026-07-03 16:00 KST. Metric: authorization error rate dropped to 0.7%."
+          }
+        ]
+      },
+      "runs": [
+        {
+          "id": "brief",
+          "prompt": "Brief this incident update without overstating status.",
+          "mode": "brief",
+          "use_output_cache": false,
+          "expect": {
+            "stats": {
+              "summarizer_calls": 1,
+              "document_cache_hits": 0,
+              "document_cache_misses": 1
+            },
+            "contains": [
+              "mitigated, not resolved",
+              "INC-2026-170",
+              "0.7%"
+            ],
+            "not_contains": [
+              "Status: resolved",
+              "incident is resolved"
+            ],
+            "summary_state": {
+              "actions_contains": [
+                "confirm error rate",
+                "2026-07-03"
+              ],
+              "metrics_contains": [
+                "0.7",
+                "%"
+              ],
+              "evidence_contains": [
+                "mitigated, not resolved"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "incident-nuance-not-observed",
+      "input": {
+        "documents": [
+          {
+            "document_id": "INC-2026-171",
+            "title": "Duplicate charge monitoring note",
+            "doc_type": "log",
+            "content_format": "text",
+            "text": "Incident INC-2026-171 monitoring note. No duplicate charges have been observed. Risk: payment retries may increase support load. Action: Support owner Mira should monitor refund tickets by 2026-07-03 17:00 KST. Metric: refund queue reached 14 tickets."
+          }
+        ]
+      },
+      "runs": [
+        {
+          "id": "brief",
+          "prompt": "Brief this monitoring note and preserve absence-of-evidence wording.",
+          "mode": "brief",
+          "use_output_cache": false,
+          "expect": {
+            "stats": {
+              "summarizer_calls": 1,
+              "document_cache_hits": 0,
+              "document_cache_misses": 1
+            },
+            "contains": [
+              "No duplicate charges have been observed",
+              "monitor refund tickets"
+            ],
+            "not_contains": [
+              "duplicate charges occurred",
+              "there were no duplicate charges"
+            ],
+            "summary_state": {
+              "actions_contains": [
+                "monitor refund tickets",
+                "2026-07-03"
+              ],
+              "risks_contains": [
+                "payment retries may increase support load"
+              ],
+              "metrics_contains": [
+                "14"
+              ],
+              "evidence_contains": [
+                "No duplicate charges have been observed",
+                "Metric: refund queue reached 14 tickets"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "incident-communication-restriction",
+      "input": {
+        "documents": [
+          {
+            "document_id": "INC-2026-172",
+            "title": "Incident communications restriction",
+            "doc_type": "log",
+            "content_format": "text",
+            "text": "Incident INC-2026-172 communications note. Communication restriction: do not publish root cause externally until Legal approves. Action: Comms owner Ilya should prepare an internal-only update by 2026-07-03 18:00 KST. Risk: premature disclosure may create compliance exposure."
+          }
+        ]
+      },
+      "runs": [
+        {
+          "id": "brief",
+          "prompt": "Brief this communications note and preserve restrictions.",
+          "mode": "brief",
+          "use_output_cache": false,
+          "expect": {
+            "stats": {
+              "summarizer_calls": 1,
+              "document_cache_hits": 0,
+              "document_cache_misses": 1
+            },
+            "contains": [
+              "do not publish root cause externally until Legal approves",
+              "internal-only update"
+            ],
+            "not_contains": [
+              "publish root cause externally now"
+            ],
+            "summary_state": {
+              "actions_contains": [
+                "internal-only update",
+                "2026-07-03"
+              ],
+              "risks_contains": [
+                "premature disclosure"
+              ],
+              "evidence_contains": [
+                "do not publish root cause externally"
+              ]
             }
           }
         }

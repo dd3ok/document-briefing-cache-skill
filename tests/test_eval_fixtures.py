@@ -28,6 +28,17 @@ def test_eval_fixture_cases_define_cache_and_trigger_expectations():
     assert has_state_expectation
 
 
+def test_eval_fixture_includes_nuance_regression_cases():
+    path = Path("evals/briefing_eval_cases.json")
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+
+    case_ids = {case["id"] for case in payload["cases"]}
+    assert "incident-nuance-mitigated-not-resolved" in case_ids
+    assert "incident-nuance-not-observed" in case_ids
+    assert "incident-communication-restriction" in case_ids
+
+
 def test_eval_runner_fails_when_summary_state_needle_is_missing():
     path = Path("evals/briefing_eval_cases.json")
     payload = json.loads(path.read_text(encoding="utf-8"))
