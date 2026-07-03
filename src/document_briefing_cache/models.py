@@ -145,6 +145,45 @@ class DocumentSummaryState(BaseModel):
     summarizer_id: str = "unknown"
 
 
+class DocumentCacheEvent(BaseModel):
+    document_id: str
+    title: str | None = None
+    fingerprint_prefix: str
+    cache_key_prefix: str
+    status: Literal["hit", "miss", "expired", "corrupt", "bypass", "refresh", "ephemeral"]
+    reason: Literal[
+        "hit_same_contract",
+        "miss_new_fingerprint",
+        "miss_refresh_policy",
+        "miss_bypass_policy",
+        "miss_ephemeral_policy",
+        "miss_cache_disabled",
+        "expired_ttl",
+        "corrupt_validation_failed",
+        "corrupt_hmac_failed",
+        "rejected_contract_mismatch",
+    ]
+    summarizer_id: str
+    schema_version: str
+    redaction_policy_id: str
+
+
+class OutputCacheEvent(BaseModel):
+    cache_key_prefix: str
+    status: Literal["hit", "miss", "expired", "corrupt", "disabled"]
+    reason: Literal[
+        "output_hit_same_render_key",
+        "output_miss",
+        "output_miss_mode_changed",
+        "output_miss_template_changed",
+        "output_expired_ttl",
+        "output_corrupt_validation_failed",
+        "output_read_skipped_policy",
+        "output_disabled",
+        "output_disabled_normalization_unknowns",
+    ]
+
+
 class PipelineStats(BaseModel):
     input_documents: int = 0
     output_cache_hit: bool = False
@@ -162,6 +201,8 @@ class PipelineStats(BaseModel):
     evidence_validation_errors: int = 0
     pii_redactions: int = 0
     delete_on_exit_applied: bool = False
+    document_cache_events: list[DocumentCacheEvent] = Field(default_factory=list)
+    output_cache_event: OutputCacheEvent | None = None
 
 
 class PipelineResult(BaseModel):

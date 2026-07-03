@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -15,6 +16,11 @@ TITLE_KEYS = ("title", "name", "subject", "headline")
 SOURCE_KEYS = ("source", "url", "link", "path")
 ID_KEYS = ("id", "document_id", "doc_id", "uuid", "url")
 NORMALIZATION_UNKNOWNS_KEY = "normalization_unknowns"
+INCIDENT_ID_PATTERN = re.compile(r"^Incident ID:\s*(?P<id>[A-Za-z0-9_.:-]+)\s*$", flags=re.IGNORECASE | re.MULTILINE)
+INCIDENT_UPDATE_PATTERN = re.compile(r"^Incident Update:\s*(?P<label>.+?)\s*$", flags=re.IGNORECASE | re.MULTILINE)
+INCIDENT_UPDATE_TIMESTAMP_PREFIX_PATTERN = re.compile(
+    r"^(?P<label>\d{4}-\d{2}-\d{2}(?:[ T]\d{1,2}:\d{2}(?:\s*[A-Z]{2,4})?)?)\b"
+)
 
 
 def normalization_unknown(message: str) -> dict[str, list[str]]:
@@ -307,6 +313,122 @@ def split_documents_into_section_documents(documents: list[DocumentInput]) -> li
                 )
             )
     return split_documents
+
+
+def split_documents_into_incident_records(documents: list[DocumentInput]) -> list[DocumentInput]:
+    split_documents: list[DocumentInput] = []
+    for document in documents:
+        records = split_incident_document(document)
+        split_documents.extend(records)
+    return split_documents
+
+
+def split_incident_document(document: DocumentInput) -> list[DocumentInput]:
+    text = (document.text or "").strip()
+    update_matches = list(INCIDENT_UPDATE_PATTERN.finditer(text))
+    incident_match = INCIDENT_ID_PATTERN.search(text)
+    if not update_matches or not incident_match:
+        return [document]
+
+    incident_id = incident_match.group("id").strip()
+    records: list[DocumentInput] = []
+    root_text = text[: update_matches[0].start()].strip()
+    if root_text and incident_root_has_body(root_text):
+        records.append(
+            incident_record_document(
+                document,
+                document_id=f"{incident_id}/root",
+                title=document.title,
+                text=root_text,
+                parent_id=incident_id,
+                record_type="incident_root",
+                record_label="root",
+            )
+        )
+
+    seen_update_slugs: set[str] = set()
+    for match_index, match in enumerate(update_matches):
+        start = match.start()
+        end = update_matches[match_index + 1].start() if match_index + 1 < len(update_matches) else len(text)
+        update_text = text[start:end].strip()
+        if not update_text:
+            continue
+        label = incident_update_label(match.group("label"))
+        record_slug = unique_incident_update_slug(label, update_text, seen_update_slugs)
+        if not INCIDENT_ID_PATTERN.search(update_text):
+            update_text = f"Incident ID: {incident_id}\n{update_text}"
+        records.append(
+            incident_record_document(
+                document,
+                document_id=f"{incident_id}/update-{record_slug}",
+                title=f"{document.title or incident_id} update {label}",
+                text=update_text,
+                parent_id=incident_id,
+                record_type="incident_update",
+                record_label=label,
+            )
+        )
+
+    return records or [document]
+
+
+def incident_root_has_body(root_text: str) -> bool:
+    body = INCIDENT_ID_PATTERN.sub("", root_text).strip()
+    return bool(body)
+
+
+def incident_update_slug(label: str, text: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
+    if slug:
+        return slug[:80]
+    return f"fp-{hashlib.sha256(text.encode('utf-8')).hexdigest()[:8]}"
+
+
+def incident_update_label(raw_label: str) -> str:
+    label = raw_label.strip()
+    timestamp_match = INCIDENT_UPDATE_TIMESTAMP_PREFIX_PATTERN.match(label)
+    if timestamp_match:
+        return timestamp_match.group("label").strip().rstrip(".")
+    return label
+
+
+def unique_incident_update_slug(label: str, text: str, seen_slugs: set[str]) -> str:
+    base_slug = incident_update_slug(label, text)
+    slug = base_slug
+    duplicate_index = 2
+    while slug in seen_slugs:
+        suffix = hashlib.sha256(text.encode("utf-8")).hexdigest()[:8]
+        slug = f"{base_slug[:66]}-{suffix}-{duplicate_index}"
+        duplicate_index += 1
+    seen_slugs.add(slug)
+    return slug
+
+
+def incident_record_document(
+    document: DocumentInput,
+    document_id: str,
+    title: str | None,
+    text: str,
+    parent_id: str,
+    record_type: str,
+    record_label: str,
+) -> DocumentInput:
+    return DocumentInput(
+        document_id=document_id,
+        title=title,
+        source=document.source,
+        doc_type=document.doc_type,
+        content_format=document.content_format,
+        text=text,
+        raw=document.raw,
+        metadata={
+            **document.metadata,
+            "parent_document_id": parent_id,
+            "parent_title": document.title,
+            "record_type": record_type,
+            "record_label": record_label,
+        },
+    )
 
 
 def chunk_text(text: str, heading: str | None, start_order: int, max_chars: int) -> list[DocumentSection]:

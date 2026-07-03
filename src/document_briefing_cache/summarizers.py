@@ -44,9 +44,9 @@ class RuleBasedExtractiveSummarizer(BaseSummarizer):
     baseline that proves cache and template behavior without network or token use.
     """
 
-    summarizer_id = "rules-extractive-v0.2.0"
+    summarizer_id = "rules-extractive-v0.2.1"
 
-    risk_keywords = ("risk", "위험", "issue", "장애", "오류", "delay", "지연", "blocked", "보안", "실패", "incident")
+    risk_keywords = ("risk", "위험", "issue", "장애", "오류", "delay", "지연", "blocked", "보안", "실패", "incident", "restriction")
     action_keywords = ("action", "todo", "해야", "할 것", "should", "next step", "액션", "조치")
     decision_keywords = ("decision", "decided", "approved", "결정", "확정", "승인")
 
@@ -318,8 +318,10 @@ def select_summary_sentences(sentences: list[str], limit: int) -> list[str]:
             score += 2
         if re.search(r"\d", sentence):
             score += 1
-        if contains_any(sentence, ("결정", "risk", "위험", "action", "해야", "impact", "영향", "핵심", "중요")):
+        if contains_any(sentence, ("결정", "decision", "risk", "위험", "action", "해야", "impact", "영향", "핵심", "중요", "restriction")):
             score += 2
+        if contains_any(sentence, ("status", "not resolved", "mitigated")):
+            score += 3
         score += max(0, 3 - idx) * 0.1
         scored.append((score, idx, sentence))
     selected = sorted(scored, key=lambda item: (-item[0], item[1]))[:limit]

@@ -1,0 +1,22 @@
+{
+  "documents": [
+    {
+      "id": "TCK-4821",
+      "title": "Checkout support ticket",
+      "type": "ticket",
+      "content": "Ticket TCK-4821 opened on 2026-07-03. Action: Support owner Mira should publish the customer reply by 16:00 KST. Risk: customers may retry checkout and create duplicate support tickets. Metric: 37 affected checkout sessions."
+    },
+    {
+      "id": "INC-2026-0703-PAY",
+      "title": "Payment incident report",
+      "type": "incident",
+      "content": "Incident INC-2026-0703-PAY started at 14:10 KST on 2026-07-03. Decision: keep card checkout in degraded mode until error rate is below 1%. Action: Backend owner Joon should patch the payment timeout by 15:30 KST. Risk: duplicate charges have not been observed, but payment retries may increase support load. Metric: authorization error rate reached 4.8%."
+    },
+    {
+      "id": "INC-2026-0703-PAY-update-1530",
+      "title": "Payment incident update 15:30",
+      "type": "incident",
+      "content": "Incident Update: 2026-07-03 15:30 KST. Status: mitigated, not resolved. Decision: keep monitoring for 30 minutes before closing the incident. Action: SRE owner Hana should confirm error rate remains below 1% by 16:00 KST. Metric: authorization error rate dropped to 0.7%. Communication restriction: do not publish root cause externally until Legal approves."
+    }
+  ]
+}

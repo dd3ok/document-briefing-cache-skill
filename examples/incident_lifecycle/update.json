@@ -1,0 +1,10 @@
+{
+  "documents": [
+    {
+      "id": "INC-2026-0703-PAY-update-1530",
+      "title": "Payment incident update 15:30",
+      "type": "incident",
+      "content": "Incident Update: 2026-07-03 15:30 KST. Status: mitigated, not resolved. Decision: keep monitoring for 30 minutes before closing the incident. Action: SRE owner Hana should confirm error rate remains below 1% by 16:00 KST. Metric: authorization error rate dropped to 0.7%. Communication restriction: do not publish root cause externally until Legal approves."
+    }
+  ]
+}

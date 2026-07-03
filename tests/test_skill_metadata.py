@@ -22,7 +22,7 @@ def test_openai_yaml_uses_interface_metadata():
 
     assert "interface:" in openai_yaml
     assert 'display_name: "Document Briefing Cache"' in openai_yaml
-    assert 'short_description: "Cached structured document briefings"' in openai_yaml
+    assert 'short_description: "Rerender cached structured briefings without re-summarizing unchanged documents."' in openai_yaml
     assert "$document-briefing-cache" in openai_yaml
     assert "policy:" in openai_yaml
     assert "allow_implicit_invocation: true" in openai_yaml

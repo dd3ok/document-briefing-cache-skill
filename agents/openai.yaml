@@ -2,7 +2,7 @@ version: "0.3.1"
 
 interface:
   display_name: "Document Briefing Cache"
-  short_description: "Cached structured document briefings"
+  short_description: "Rerender cached structured briefings without re-summarizing unchanged documents."
   default_prompt: "Use $document-briefing-cache to summarize the supplied documents into a cached briefing and include cache stats."
 
 policy:

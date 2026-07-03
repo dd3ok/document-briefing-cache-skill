@@ -259,6 +259,48 @@ def test_cli_benchmark_can_split_input_sections(tmp_path, capsys):
     assert payload["rows"][0]["documents"] == 2
 
 
+def test_cli_benchmark_can_split_incident_records(tmp_path, capsys):
+    base_path = tmp_path / "incident-base.md"
+    base_path.write_text(
+        "Incident ID: INC-1\n"
+        "Status: open. Risk: checkout errors may continue.\n\n"
+        "Incident Update: 2026-07-03 15:30 KST\n"
+        "Action: SRE should confirm error rate by 16:00 KST.",
+        encoding="utf-8",
+    )
+    update_path = tmp_path / "incident-update.md"
+    update_path.write_text(
+        "Incident ID: INC-1\n"
+        "Incident Update: 2026-07-03 16:00 KST\n"
+        "Decision: keep monitoring for 30 minutes.",
+        encoding="utf-8",
+    )
+
+    assert main(
+        [
+            "benchmark",
+            "--input",
+            str(base_path),
+            "--incremental-input",
+            str(update_path),
+            "--split-records",
+            "incident",
+            "--cache-dir",
+            str(tmp_path / "cache"),
+            "--mode",
+            "brief",
+            "--json",
+        ]
+    ) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["rows"][0]["documents"] == 2
+    assert payload["rows"][2]["scenario"] == "add incremental brief"
+    assert payload["rows"][2]["document_cache_hits"] == 2
+    assert payload["rows"][2]["document_cache_misses"] == 1
+    assert payload["rows"][2]["summarizer_calls"] == 1
+
+
 def test_cli_run_uses_shared_document_loader(tmp_path, capsys):
     input_path = tmp_path / "ticket.json"
     input_path.write_text(

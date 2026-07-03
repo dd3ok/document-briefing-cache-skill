@@ -1,5 +1,10 @@
 from document_briefing_cache.models import ContentFormat, DocumentInput
-from document_briefing_cache.normalize import normalize_payload, split_documents_into_section_documents, split_into_sections
+from document_briefing_cache.normalize import (
+    normalize_payload,
+    split_documents_into_incident_records,
+    split_documents_into_section_documents,
+    split_into_sections,
+)
 
 
 def test_json_documents_are_normalized():
@@ -65,6 +70,100 @@ def test_split_documents_into_section_documents_preserves_parent_metadata():
     assert split_docs[1].document_id == "ops.md#section-2"
     assert split_docs[1].title == "Two"
     assert split_docs[1].raw == raw
+
+
+def test_split_documents_into_incident_records_uses_stable_ids():
+    docs = [
+        DocumentInput(
+            document_id="feed-1",
+            title="Incident Feed",
+            content_format=ContentFormat.markdown,
+            text=(
+                "Incident ID: INC-1\n"
+                "Status: open. Risk: checkout errors may continue.\n\n"
+                "Incident Update: 2026-07-03 15:30 KST\n"
+                "Action: SRE should confirm error rate by 16:00 KST.\n\n"
+                "Incident Update: 2026-07-03 16:00 KST\n"
+                "Decision: keep monitoring for 30 minutes."
+            ),
+            raw={"feed": "incident"},
+        )
+    ]
+
+    split_docs = split_documents_into_incident_records(docs)
+
+    assert [doc.document_id for doc in split_docs] == [
+        "INC-1/root",
+        "INC-1/update-2026-07-03-15-30-kst",
+        "INC-1/update-2026-07-03-16-00-kst",
+    ]
+    assert split_docs[0].metadata["record_type"] == "incident_root"
+    assert split_docs[1].metadata["record_type"] == "incident_update"
+    assert split_docs[1].metadata["parent_document_id"] == "INC-1"
+    assert split_docs[1].raw == {"feed": "incident"}
+    assert "15:30 KST" in split_docs[1].text
+    assert "16:00 KST" in split_docs[2].text
+
+
+def test_split_documents_into_incident_records_disambiguates_duplicate_update_labels():
+    docs = [
+        DocumentInput(
+            document_id="feed-1",
+            title="Incident Feed",
+            content_format=ContentFormat.markdown,
+            text=(
+                "Incident ID: INC-1\n\n"
+                "Incident Update: follow-up\n"
+                "Action: SRE should check logs.\n\n"
+                "Incident Update: follow-up\n"
+                "Action: support should notify affected users."
+            ),
+        )
+    ]
+
+    split_docs = split_documents_into_incident_records(docs)
+
+    assert split_docs[0].document_id == "INC-1/update-follow-up"
+    assert split_docs[1].document_id.startswith("INC-1/update-follow-up-")
+    assert split_docs[0].document_id != split_docs[1].document_id
+
+
+def test_split_documents_into_incident_records_requires_stable_incident_id():
+    document = DocumentInput(
+        document_id="generic-log",
+        title="Generic update log",
+        content_format=ContentFormat.markdown,
+        text=(
+            "Incident Update: 2026-07-03 15:30 KST\n"
+            "Action: support should follow up, but no stable incident id is present."
+        ),
+    )
+
+    assert split_documents_into_incident_records([document]) == [document]
+
+
+def test_split_documents_into_incident_records_uses_timestamp_prefix_for_one_line_updates():
+    docs = [
+        DocumentInput(
+            document_id="feed-1",
+            title="Incident Feed",
+            content_format=ContentFormat.markdown,
+            text=(
+                "Incident ID: INC-1\n"
+                "Incident Update: 2026-07-03 15:30 KST. Status: mitigated, not resolved.\n\n"
+                "Incident Update: 2026-07-03 16:00 KST. Status: resolved."
+            ),
+        )
+    ]
+
+    split_docs = split_documents_into_incident_records(docs)
+
+    assert [doc.document_id for doc in split_docs] == [
+        "INC-1/update-2026-07-03-15-30-kst",
+        "INC-1/update-2026-07-03-16-00-kst",
+    ]
+    assert split_docs[0].metadata["record_label"] == "2026-07-03 15:30 KST"
+    assert "Status: mitigated, not resolved" in split_docs[0].text
 
 
 def test_url_fields_are_preserved_as_source_metadata_without_fetching():
