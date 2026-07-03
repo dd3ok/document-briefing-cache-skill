@@ -89,10 +89,10 @@ def normalize_payload(
             content_format = ContentFormat.unknown
 
     if isinstance(payload, bytes):
-        payload = payload.decode("utf-8")
+        payload = payload.decode("utf-8-sig")
 
     if isinstance(payload, str):
-        text = payload.strip()
+        text = payload.strip().removeprefix("\ufeff")
         fmt = content_format
         if fmt == ContentFormat.unknown:
             fmt = guess_format_from_string(text)

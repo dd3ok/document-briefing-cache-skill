@@ -37,6 +37,32 @@ def test_load_path_to_documents_accepts_utf8_bom_json(tmp_path):
     assert "owner should reply" in docs[0].text
 
 
+def test_normalize_payload_accepts_utf8_bom_json_bytes():
+    docs = normalize_payload(
+        b'\xef\xbb\xbf{"documents":[{"id":"doc-1","title":"BOM bytes","content":"Action: owner should reply."}]}',
+        content_format=ContentFormat.json,
+    )
+
+    assert len(docs) == 1
+    assert docs[0].document_id == "doc-1"
+    assert docs[0].title == "BOM bytes"
+    assert docs[0].content_format == ContentFormat.json
+    assert "owner should reply" in docs[0].text
+
+
+def test_normalize_payload_accepts_utf8_bom_json_text():
+    docs = normalize_payload(
+        '\ufeff{"documents":[{"id":"doc-1","title":"BOM text","content":"Action: owner should reply."}]}',
+        content_format=ContentFormat.json,
+    )
+
+    assert len(docs) == 1
+    assert docs[0].document_id == "doc-1"
+    assert docs[0].title == "BOM text"
+    assert docs[0].content_format == ContentFormat.json
+    assert "owner should reply" in docs[0].text
+
+
 def test_html_is_stripped_to_text():
     html = "<html><head><title>Doc</title><script>x()</script></head><body><h1>Hello</h1><p>World</p></body></html>"
     docs = normalize_payload(html)
