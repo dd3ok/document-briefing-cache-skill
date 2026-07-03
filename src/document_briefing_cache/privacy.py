@@ -17,7 +17,9 @@ PII_PATTERNS: tuple[tuple[str, re.Pattern[str], str], ...] = (
     ("phone", re.compile(r"\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}\b"), "[REDACTED:phone]"),
 )
 SECRET_ASSIGNMENT_PATTERN = re.compile(
-    r"\b(?P<name>api[_-]?key|access[_-]?token|refresh[_-]?token|auth[_-]?token|client[_-]?secret|webhook[_-]?secret|session[_-]?id|secret)"
+    r"(?P<key_quote>[\"']?)"
+    r"\b(?P<name>api[_-]?key|access[_-]?token|refresh[_-]?token|auth[_-]?token|client[_-]?secret|webhook[_-]?secret|session[_-]?id|secret)\b"
+    r"(?P=key_quote)"
     r"(?P<sep>\s*[:=]\s*)"
     r"(?P<quote>[\"']?)"
     r"(?P<value>[A-Za-z0-9][A-Za-z0-9._~+/=_-]{7,})"
@@ -43,7 +45,9 @@ def redact_secret_text(value: str) -> tuple[str, int]:
     total = 0
 
     def replace_assignment(match: re.Match[str]) -> str:
-        return f"{match.group('name')}{match.group('sep')}[REDACTED:secret]"
+        key_quote = match.group("key_quote")
+        value_quote = match.group("quote")
+        return f"{key_quote}{match.group('name')}{key_quote}{match.group('sep')}{value_quote}[REDACTED:secret]{value_quote}"
 
     redacted, count = SECRET_ASSIGNMENT_PATTERN.subn(replace_assignment, redacted)
     total += count

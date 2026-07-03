@@ -215,6 +215,23 @@ def test_secret_redaction_covers_common_tokens_and_preserves_operational_values(
     assert "183 ms" in redacted
 
 
+def test_secret_redaction_covers_quoted_assignment_keys():
+    text = (
+        '{"api_key": "sk_test_123456789abcdef", '
+        "'client_secret': 'client-secret-123456789', "
+        '"owner": "ops"}'
+    )
+
+    redacted, count = redact_secret_text(text)
+
+    assert count == 2
+    assert "sk_test_123456789abcdef" not in redacted
+    assert "client-secret-123456789" not in redacted
+    assert '"api_key": "[REDACTED:secret]"' in redacted
+    assert "'client_secret': '[REDACTED:secret]'" in redacted
+    assert '"owner": "ops"' in redacted
+
+
 def test_pipeline_redacts_secrets_before_summarizer_output_and_cache(tmp_path):
     secret = "sk_test_123456789abcdef"
     docs = [
