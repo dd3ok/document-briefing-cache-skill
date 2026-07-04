@@ -4,9 +4,15 @@ Last checked: 2026-07-04
 
 ## Verified surfaces
 
-These notes cover Codex, Claude Code, Gemini CLI, Antigravity, OpenClaw, and Hermes install surfaces for the lightweight `skills/briefprint` bundle.
+- Codex local and repository skill folders
+- Claude Code personal and project skill folders
 
 ## Community-compatible notes
+
+- Gemini CLI
+- Antigravity
+- OpenClaw
+- Hermes
 
 Community host commands below are examples to verify against the current host documentation before use. Prefer any current host option that installs the `skills/briefprint` subdirectory without copying the repository root.
 

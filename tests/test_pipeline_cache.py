@@ -247,7 +247,9 @@ def test_corrupt_document_cache_event_uses_validation_failed_reason(tmp_path):
     doc = DocumentInput(document_id="corrupt-doc", title="Corrupt", text="Action: owner should inspect cache.")
     pipeline = BriefingPipeline(cache_dir=tmp_path)
     first = pipeline.run([doc], use_output_cache=False)
-    key = first.stats.cache_keys[next(name for name in first.stats.cache_keys if name.startswith("document:"))]
+    doc_keys = [name for name in first.stats.cache_keys if name.startswith("document:")]
+    assert len(doc_keys) == 1
+    key = first.stats.cache_keys[doc_keys[0]]
     path = pipeline.document_cache.path_for(key)
     path.write_text("{not-json", encoding="utf-8")
 
