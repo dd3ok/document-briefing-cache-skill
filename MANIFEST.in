@@ -1,5 +1,5 @@
 recursive-include src/document_briefing_cache/templates *.md.j2
-include README.md LICENSE AGENTS.md VALIDATION.md
+include README.md README.ko.md LICENSE AGENTS.md VALIDATION.md
 recursive-include examples *.json
 recursive-include evals *.json
 recursive-include references *.md

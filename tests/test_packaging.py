@@ -43,6 +43,6 @@ def test_wheel_install_surface_is_runtime_only():
     assert 'where = ["src"]' in pyproject
     assert 'document_briefing_cache = ["templates/*.md.j2"]' in pyproject
 
-    assert "include README.md LICENSE AGENTS.md SKILL.md VALIDATION.md" not in manifest
-    assert "include README.md LICENSE AGENTS.md VALIDATION.md" in manifest
+    assert "include README.md README.ko.md LICENSE AGENTS.md SKILL.md VALIDATION.md" not in manifest
+    assert "include README.md README.ko.md LICENSE AGENTS.md VALIDATION.md" in manifest
     assert "recursive-include skills *.md *.yaml" in manifest

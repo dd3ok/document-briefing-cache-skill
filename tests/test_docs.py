@@ -23,6 +23,15 @@ def test_readme_documents_briefprint_skill_branding():
     assert "briefprint-skill" not in readme
 
 
+def test_readme_links_korean_readme():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    korean = (ROOT / "README.ko.md").read_text(encoding="utf-8")
+
+    assert "[한국어](README.ko.md)" in readme
+    assert "[English](README.md)" in korean
+    assert "한 번 읽고, 어디서든 브리핑하세요." in korean
+
+
 def test_readme_includes_claude_ai_description_variant_under_200_chars():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     marker = "Claude.ai description variant:"
