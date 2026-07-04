@@ -66,6 +66,8 @@ def test_agent_skill_installation_doc_covers_lightweight_vendor_paths():
     doc = (ROOT / "docs" / "agent-skill-installation.md").read_text(encoding="utf-8")
 
     assert "skills/document-briefing-cache" in doc
+    assert "dd3ok/briefprint" in doc
+    assert "document-briefing-cache-skill" not in doc
     assert "Do not install the repository root" in doc
     assert "~/.codex/skills" not in doc
     assert "npx skills install" not in doc
