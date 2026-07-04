@@ -9,23 +9,14 @@ Use this skill when document meaning should be summarized once, stored as struct
 
 Tradeoff: this is useful for repeated document-grounded work. It is not a general writing, research, or source-code review skill.
 
-## Rules
+## Core Workflow
 
-1. Normalize every input into `DocumentInput`.
-2. Compute `content_fingerprint` before summarizing.
-3. Cache `DocumentSummaryState`, not only final prose.
-4. Call an LLM only for document-summary cache misses.
-5. Render mode-only changes from cached state.
+1. Normalize supplied content into `DocumentInput`.
+2. Compute `content_fingerprint` before summary work.
+3. Reuse `DocumentSummaryState` when fingerprint, schema version, and summarizer contract match.
+4. LLM only on document-summary cache misses.
+5. Render `brief`, `executive`, `action_items`, `digest`, or `debug` from cached state.
 6. Preserve IDs, names, dates, numbers, URLs, sources, and evidence quotes exactly.
-
-## Standard Flow
-
-1. Normalize supplied documents, file text, pasted notes, exported tickets, logs, reports, transcripts, JSON, XML, or cached state.
-2. Fingerprint each normalized document.
-3. Check document-level summary cache by fingerprint, schema version, and summarizer contract.
-4. Summarize only cache misses into `DocumentSummaryState`.
-5. Validate protected values and evidence.
-6. Render from cached state as `brief`, `executive`, `action_items`, `digest`, or `debug`.
 7. Report cache hits, misses, and summarizer calls when useful.
 
 Preserve URL-bearing metadata as source/reference metadata. Do not fetch remote links unless the runtime explicitly supports fetching and the user asked for it.
@@ -42,7 +33,7 @@ Do not call an LLM for:
 
 - same document and same summarizer contract,
 - mode-only changes such as `brief` to `digest` or `action_items`,
-- sorting, filtering, grouping, or deduplicating cached fields,
+- sorting, filtering, grouping, or deduplicating cached fields from the same document state,
 - debug output that only exposes state and cache keys.
 
 If a runtime or CLI is available, use it to execute the cache-aware pipeline. If only this skill is installed, follow these rules as the workflow contract and do not claim cache-backed execution unless a cache store and summarizer are actually available.
