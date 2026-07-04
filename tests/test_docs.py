@@ -94,3 +94,44 @@ def test_readme_documents_secret_redaction_scope_and_sensitive_boundary():
     assert "secret-shaped JSON keys" in readme
     assert "best-effort" in readme
     assert "not included in --sensitive" in readme
+
+
+def test_root_best_practices_documents_sensitive_and_secret_redaction():
+    best_practices = (ROOT / "references" / "best-practices.md").read_text(encoding="utf-8")
+
+    assert "--sensitive" in best_practices
+    assert "--redact-secrets" in best_practices
+    assert "basic-secrets-v1" in best_practices
+    assert "not included in `--sensitive`" in best_practices
+    assert "HMAC signing is tamper detection only, not encryption" in best_practices
+
+
+def test_competitive_roadmap_status_is_not_stale_proposed_snapshot():
+    roadmap = (ROOT / "references" / "competitive-roadmap.md").read_text(encoding="utf-8")
+
+    assert "Status: implemented through P5; deferred items remain" in roadmap
+    assert "Current implementation status" in roadmap
+
+
+def test_readmes_document_skill_and_runtime_naming_boundary():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    korean = (ROOT / "README.ko.md").read_text(encoding="utf-8")
+
+    assert "Agent skill: `briefprint`" in readme
+    assert "Python package/CLI: `document-briefing-cache` / `document_briefing_cache`" in readme
+    assert "에이전트 스킬: `briefprint`" in korean
+    assert "Python 패키지/CLI: `document-briefing-cache` / `document_briefing_cache`" in korean
+
+
+def test_secret_redaction_docs_warn_about_operational_correlation_ids():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    korean = (ROOT / "README.ko.md").read_text(encoding="utf-8")
+    best_practices = (ROOT / "references" / "best-practices.md").read_text(encoding="utf-8")
+    skill_best_practices = (ROOT / "skills" / "briefprint" / "references" / "best-practices.md").read_text(encoding="utf-8")
+
+    assert "session_id" in readme
+    assert "operational correlation" in readme
+    assert "session_id" in korean
+    assert "운영 상관관계" in korean
+    assert "session_id" in best_practices
+    assert "session_id" in skill_best_practices

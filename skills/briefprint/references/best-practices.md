@@ -35,3 +35,5 @@ Token estimates from a local harness are not provider billing telemetry. Use pro
 Document summaries can contain evidence quotes, names, IDs, dates, metrics, sources, and rendered outputs. Prefer private cache permissions, short output-cache TTLs, and ephemeral mode for sensitive documents.
 
 Use redaction before cache-miss summarization when documents may contain PII or secrets. Use encrypted storage or tmpfs when cache contents need confidentiality. HMAC detects tampering only; it does not hide contents.
+
+Secret redaction can mask operational correlation IDs such as `session_id`; enable it only when secret protection outweighs exact correlation.

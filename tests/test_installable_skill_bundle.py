@@ -71,6 +71,15 @@ def test_agent_skill_installation_doc_covers_lightweight_vendor_paths():
     assert "~/.codex/skills" not in doc
     assert "npx skills install" not in doc
     assert "npx skills add" in doc
+    for section in [
+        "Verified surfaces",
+        "Community-compatible notes",
+        "Verify installed files",
+    ]:
+        assert section in doc
+    assert re.search(r"Last checked: \d{4}-\d{2}-\d{2}", doc)
+    assert "Codex local and repository skill folders" in doc
+    assert "Claude Code personal and project skill folders" in doc
     for vendor in ["Codex", "Claude Code", "Gemini CLI", "Antigravity", "OpenClaw", "Hermes"]:
         assert vendor in doc
 

@@ -61,6 +61,13 @@ pip install -e ".[llm]"  # OpenAI-backed structured summarizer
 pip install -e ".[pdf]"  # PDF text extraction helpers
 ```
 
+Naming note:
+
+- Agent skill: `briefprint`
+- Python package/CLI: `document-briefing-cache` / `document_briefing_cache`
+
+The runtime names are kept for package compatibility while the installable agent skill is branded as Briefprint.
+
 Run the sample:
 
 ```bash
@@ -212,6 +219,8 @@ For sensitive documents, the safe default is no persistent cache. `--sensitive` 
 `--redact-pii` applies the built-in `basic-contact-v1` profile before cache misses are summarized. It covers common email addresses, Korean mobile numbers, and US phone numbers. It is not a complete PII detector.
 
 `--redact-secrets` applies the built-in `basic-secrets-v1` profile. It is best-effort and targets bearer tokens, API keys, webhook URLs, card-like values, and string values under secret-shaped JSON keys. Secret redaction is not included in --sensitive; enable it explicitly when secret-shaped values may appear.
+
+`--redact-secrets` may also remove operational correlation values such as `session_id` when they appear under secret-shaped keys. Enable it when secret protection matters more than exact operational correlation.
 
 `--cache-hmac-secret-env` signs cache envelopes with HMAC-SHA256. HMAC is tamper detection only, not encryption. Use encrypted storage, tmpfs, or another encrypted backend when cache contents need confidentiality.
 

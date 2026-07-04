@@ -1,5 +1,21 @@
 # Lightweight Agent Skill Installation
 
+Last checked: 2026-07-04
+
+## Verified surfaces
+
+- Codex local and repository skill folders
+- Claude Code personal and project skill folders
+
+## Community-compatible notes
+
+- Gemini CLI
+- Antigravity
+- OpenClaw
+- Hermes
+
+Community host commands below are examples to verify against the current host documentation before use. Prefer any current host option that installs the `skills/briefprint` subdirectory without copying the repository root.
+
 This repository has two different install surfaces:
 
 - Python package/runtime: installs `document_briefing_cache` code and templates.
@@ -23,6 +39,21 @@ skills/briefprint/
 ```
 
 It intentionally excludes `tests`, `docs`, `examples`, `evals`, `src`, and `scripts`.
+
+## Verify installed files
+
+After installation, the skill directory should contain only these files:
+
+```text
+SKILL.md
+agents/openai.yaml
+references/architecture.md
+references/schema.md
+references/llm-contract.md
+references/best-practices.md
+```
+
+It must not contain development or runtime directories such as `.github`, `docs`, `evals`, `examples`, `scripts`, `src`, or `tests`.
 
 ## Codex
 
