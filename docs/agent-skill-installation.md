@@ -65,7 +65,7 @@ Gemini CLI supports user and workspace skill directories, including interoperabl
 Recommended installs:
 
 ```bash
-gemini skills install https://github.com/dd3ok/document-briefing-cache-skill.git --path skills/document-briefing-cache --scope user
+gemini skills install https://github.com/dd3ok/briefprint.git --path skills/document-briefing-cache --scope user
 
 mkdir -p ~/.agents/skills
 cp -R skills/document-briefing-cache ~/.agents/skills/document-briefing-cache
@@ -85,7 +85,7 @@ cp -R skills/document-briefing-cache .agents/skills/document-briefing-cache
 Optional installer flow:
 
 ```bash
-npx skills add dd3ok/document-briefing-cache-skill
+npx skills add dd3ok/briefprint
 ```
 
 Use the interactive prompt to select only `document-briefing-cache`, then verify the installed directory contains only `SKILL.md`, `agents/openai.yaml`, and `references/*.md`.
@@ -112,7 +112,7 @@ Hermes uses `~/.hermes/skills` for primary skill storage and supports Agent Skil
 Recommended installs:
 
 ```bash
-hermes skills install dd3ok/document-briefing-cache-skill/skills/document-briefing-cache
+hermes skills install dd3ok/briefprint/skills/document-briefing-cache
 
 mkdir -p ~/.hermes/skills
 cp -R skills/document-briefing-cache ~/.hermes/skills/document-briefing-cache
