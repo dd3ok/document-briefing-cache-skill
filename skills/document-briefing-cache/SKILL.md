@@ -14,7 +14,7 @@ Tradeoff: this is useful for repeated document-grounded work. It is not a genera
 1. Normalize supplied content into `DocumentInput`.
 2. Compute `content_fingerprint` before summary work.
 3. Reuse `DocumentSummaryState` when fingerprint, schema version, and summarizer contract match.
-4. LLM only on document-summary cache misses.
+4. Call LLM only on document-summary cache misses.
 5. Render `brief`, `executive`, `action_items`, `digest`, or `debug` from cached state.
 6. Preserve IDs, names, dates, numbers, URLs, sources, and evidence quotes exactly.
 7. Report cache hits, misses, and summarizer calls when useful.
