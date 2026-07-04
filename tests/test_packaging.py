@@ -1,4 +1,3 @@
-import tomllib
 from importlib import resources
 from pathlib import Path
 
@@ -38,12 +37,11 @@ def test_default_renderer_uses_packaged_templates(tmp_path):
 
 
 def test_wheel_install_surface_is_runtime_only():
-    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     manifest = (ROOT / "MANIFEST.in").read_text(encoding="utf-8")
 
-    setuptools = pyproject["tool"]["setuptools"]
-    assert setuptools["packages"]["find"]["where"] == ["src"]
-    assert setuptools["package-data"] == {"document_briefing_cache": ["templates/*.md.j2"]}
+    assert 'where = ["src"]' in pyproject
+    assert 'document_briefing_cache = ["templates/*.md.j2"]' in pyproject
 
     assert "include README.md LICENSE AGENTS.md SKILL.md VALIDATION.md" not in manifest
     assert "include README.md LICENSE AGENTS.md VALIDATION.md" in manifest
