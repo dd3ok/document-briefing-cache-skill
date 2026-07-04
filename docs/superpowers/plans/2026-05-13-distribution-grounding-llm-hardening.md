@@ -214,7 +214,7 @@ TMPDIR=/tmp PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPAT
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 scripts/validate_skill.py
 ```
 
-Expected: tests pass and validation prints a line starting with `OK: document briefing cache skill repository validated`.
+Expected: tests pass and validation prints a line starting with `OK: briefprint skill repository validated`.
 
 - [ ] **Step 4: Commit**
 
@@ -1413,8 +1413,8 @@ Expected:
 
 ```text
 73 passed
-OK: document briefing cache skill repository validated (updated test/eval counts)
-OK: document briefing cache skill repository validated (updated test/eval counts)
+OK: briefprint skill repository validated (updated test/eval counts)
+OK: briefprint skill repository validated (updated test/eval counts)
 ```
 
 The test count will be higher than 73 after this plan lands; update `VALIDATION.md` with the observed value.

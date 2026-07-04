@@ -40,7 +40,7 @@ Observed result:
 
 ```text
 110 passed, 1 skipped
-OK: document briefing cache skill repository validated (19 test files, 6 eval cases, 9 trigger cases, 4 model benchmark cases)
+OK: briefprint skill repository validated (19 test files, 6 eval cases, 9 trigger cases, 4 model benchmark cases)
 tests/test_distribution_smoke.py: 1 skipped
 python3 -m build --version: No module named build
 ```

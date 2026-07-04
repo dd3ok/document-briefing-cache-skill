@@ -106,7 +106,7 @@ Expected: PASS.
 
 Run: `python scripts/validate_skill.py`
 
-Expected: `OK: document briefing cache skill repository validated`
+Expected: `OK: briefprint skill repository validated`
 
 - [ ] **Step 2: Run full test suite**
 

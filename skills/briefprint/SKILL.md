@@ -1,9 +1,9 @@
 ---
-name: document-briefing-cache
+name: briefprint
 description: Use for supplied documents, notes, logs, tickets, reports, transcripts, JSON/XML/API payloads, or cached briefing state when the user asks to summarize, brief, digest, recap, or rerender them while reusing structured document summaries. Do not use for live research, source-code review/debugging, general writing, translation-only edits, simple Q&A, or analysis without cacheable document input.
 ---
 
-# Document Briefing Cache
+# Briefprint
 
 Use this skill when document meaning should be summarized once, stored as structured state, and reused for repeated briefings or template-only rerendering.
 

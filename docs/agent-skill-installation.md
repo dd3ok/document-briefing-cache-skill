@@ -3,7 +3,7 @@
 This repository has two different install surfaces:
 
 - Python package/runtime: installs `document_briefing_cache` code and templates.
-- Agent skill bundle: installs only `skills/document-briefing-cache`.
+- Agent skill bundle: installs only `skills/briefprint`.
 
 Do not install the repository root as an agent skill. Root-copy installers can copy tests, docs, examples, eval fixtures, source code, and validation scripts into the host skill directory. Use the lightweight skill subdirectory instead.
 
@@ -12,7 +12,7 @@ Do not install the repository root as an agent skill. Root-copy installers can c
 The installable skill bundle is:
 
 ```text
-skills/document-briefing-cache/
+skills/briefprint/
   SKILL.md
   agents/openai.yaml
   references/
@@ -24,6 +24,12 @@ skills/document-briefing-cache/
 
 It intentionally excludes `tests`, `docs`, `examples`, `evals`, `src`, and `scripts`.
 
+## Migration From Older Installs
+
+Briefprint previously used the installable skill name `document-briefing-cache`.
+Replace old `$document-briefing-cache` calls with `$briefprint`, remove the old
+skill directory, and install `skills/briefprint`.
+
 ## Codex
 
 Codex skills use a directory containing `SKILL.md`. Codex reads only skill metadata at startup, then loads `SKILL.md` and referenced files progressively when the skill is relevant.
@@ -33,14 +39,14 @@ Recommended installs:
 ```bash
 # User skill directory
 mkdir -p ~/.agents/skills
-cp -R skills/document-briefing-cache ~/.agents/skills/document-briefing-cache
+cp -R skills/briefprint ~/.agents/skills/briefprint
 
 # Repository-local interoperable path
 mkdir -p .agents/skills
-cp -R skills/document-briefing-cache .agents/skills/document-briefing-cache
+cp -R skills/briefprint .agents/skills/briefprint
 ```
 
-When using a GitHub skill installer, select the subpath `skills/document-briefing-cache`, not the repository root.
+When using a GitHub skill installer, select the subpath `skills/briefprint`, not the repository root.
 
 ## Claude Code
 
@@ -50,10 +56,10 @@ Recommended installs:
 
 ```bash
 mkdir -p ~/.claude/skills
-cp -R skills/document-briefing-cache ~/.claude/skills/document-briefing-cache
+cp -R skills/briefprint ~/.claude/skills/briefprint
 
 mkdir -p .claude/skills
-cp -R skills/document-briefing-cache .claude/skills/document-briefing-cache
+cp -R skills/briefprint .claude/skills/briefprint
 ```
 
 For Claude API skill upload flows, zip a common root that contains this bundle, not the whole repository.
@@ -65,21 +71,21 @@ Gemini CLI supports user and workspace skill directories, including interoperabl
 Recommended installs:
 
 ```bash
-gemini skills install https://github.com/dd3ok/briefprint.git --path skills/document-briefing-cache --scope user
+gemini skills install https://github.com/dd3ok/briefprint.git --path skills/briefprint --scope user
 
 mkdir -p ~/.agents/skills
-cp -R skills/document-briefing-cache ~/.agents/skills/document-briefing-cache
+cp -R skills/briefprint ~/.agents/skills/briefprint
 ```
 
 ## Antigravity
 
-Google describes Antigravity skills as lightweight, open-format agent extensions and points users to `npx skills add` for compatible installations. Because installer flags vary by version, do not accept an install unless it selects the `document-briefing-cache` skill under `skills/document-briefing-cache`.
+Google describes Antigravity skills as lightweight, open-format agent extensions and points users to `npx skills add` for compatible installations. Because installer flags vary by version, do not accept an install unless it selects the `briefprint` skill under `skills/briefprint`.
 
 Recommended install:
 
 ```bash
 mkdir -p .agents/skills
-cp -R skills/document-briefing-cache .agents/skills/document-briefing-cache
+cp -R skills/briefprint .agents/skills/briefprint
 ```
 
 Optional installer flow:
@@ -88,7 +94,7 @@ Optional installer flow:
 npx skills add dd3ok/briefprint
 ```
 
-Use the interactive prompt to select only `document-briefing-cache`, then verify the installed directory contains only `SKILL.md`, `agents/openai.yaml`, and `references/*.md`.
+Use the interactive prompt to select only `briefprint`, then verify the installed directory contains only `SKILL.md`, `agents/openai.yaml`, and `references/*.md`.
 
 ## OpenClaw
 
@@ -98,9 +104,9 @@ Recommended installs:
 
 ```bash
 mkdir -p skills .agents/skills ~/.agents/skills
-cp -R skills/document-briefing-cache .agents/skills/document-briefing-cache
+cp -R skills/briefprint .agents/skills/briefprint
 
-openclaw skills install ./skills/document-briefing-cache --as document-briefing-cache
+openclaw skills install ./skills/briefprint --as briefprint
 ```
 
 Run `openclaw skills list` or `openclaw skills check` after installation.
@@ -112,10 +118,10 @@ Hermes uses `~/.hermes/skills` for primary skill storage and supports Agent Skil
 Recommended installs:
 
 ```bash
-hermes skills install dd3ok/briefprint/skills/document-briefing-cache
+hermes skills install dd3ok/briefprint/skills/briefprint
 
 mkdir -p ~/.hermes/skills
-cp -R skills/document-briefing-cache ~/.hermes/skills/document-briefing-cache
+cp -R skills/briefprint ~/.hermes/skills/briefprint
 ```
 
 ## Validation

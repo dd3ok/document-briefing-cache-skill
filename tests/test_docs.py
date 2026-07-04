@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL = ROOT / "skills" / "document-briefing-cache" / "SKILL.md"
+SKILL = ROOT / "skills" / "briefprint" / "SKILL.md"
 
 
 def test_readme_documents_trigger_eval_fixture_and_scope():
@@ -13,14 +13,15 @@ def test_readme_documents_trigger_eval_fixture_and_scope():
     assert "not measure actual model-side invocation behavior" in readme
 
 
-def test_readme_uses_briefprint_brand_without_renaming_skill():
+def test_readme_documents_briefprint_skill_migration():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
     assert readme.startswith("# Briefprint")
     assert "Read once. Brief anywhere." in readme
     assert "github.com/dd3ok/briefprint" in readme
-    assert "document-briefing-cache` agent skill" in readme
-    assert "document-briefing-cache-skill" not in readme
+    assert "briefprint` agent skill" in readme
+    assert "$document-briefing-cache` calls with `$briefprint" in readme
+    assert "briefprint-skill" not in readme
 
 
 def test_readme_includes_claude_ai_description_variant_under_200_chars():

@@ -26,12 +26,12 @@ REQUIRED_FILES = [
     "evals/trigger_eval_cases.json",
     "evals/model_invocation_benchmark_cases.json",
     "agents/openai.yaml",
-    "skills/document-briefing-cache/SKILL.md",
-    "skills/document-briefing-cache/agents/openai.yaml",
-    "skills/document-briefing-cache/references/architecture.md",
-    "skills/document-briefing-cache/references/schema.md",
-    "skills/document-briefing-cache/references/llm-contract.md",
-    "skills/document-briefing-cache/references/best-practices.md",
+    "skills/briefprint/SKILL.md",
+    "skills/briefprint/agents/openai.yaml",
+    "skills/briefprint/references/architecture.md",
+    "skills/briefprint/references/schema.md",
+    "skills/briefprint/references/llm-contract.md",
+    "skills/briefprint/references/best-practices.md",
 ]
 
 REQUIRED_SKILL_TERMS = [
@@ -45,7 +45,7 @@ REQUIRED_SKILL_TERMS = [
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Validate the document briefing cache skill bundle.")
+    parser = argparse.ArgumentParser(description="Validate the Briefprint skill bundle.")
     parser.add_argument("--run-evals", action="store_true", help="Execute compact eval fixtures with the rules summarizer.")
     args = parser.parse_args(argv)
 
@@ -55,9 +55,9 @@ def main(argv: list[str] | None = None) -> int:
             errors.append(f"Missing required file: {rel}")
 
     if (ROOT / "SKILL.md").exists():
-        errors.append("Repository root must not contain SKILL.md; installable skill lives under skills/document-briefing-cache.")
+        errors.append("Repository root must not contain SKILL.md; installable skill lives under skills/briefprint.")
 
-    errors.extend(validate_installable_skill_metadata(ROOT / "skills" / "document-briefing-cache" / "SKILL.md"))
+    errors.extend(validate_installable_skill_metadata(ROOT / "skills" / "briefprint" / "SKILL.md"))
 
     template_dir = ROOT / "src" / "document_briefing_cache" / "templates"
     modes = {path.stem.replace(".md", "") for path in template_dir.glob("*.md.j2")}
@@ -71,7 +71,7 @@ def main(argv: list[str] | None = None) -> int:
         errors.append("Expected at least four test files.")
     errors.extend(validate_imports())
     errors.extend(validate_openai_yaml(ROOT / "agents" / "openai.yaml"))
-    errors.extend(validate_installable_skill_bundle(ROOT / "skills" / "document-briefing-cache"))
+    errors.extend(validate_installable_skill_bundle(ROOT / "skills" / "briefprint"))
     eval_path = ROOT / "evals" / "briefing_eval_cases.json"
     eval_payload, eval_errors = validate_eval_cases(eval_path)
     errors.extend(eval_errors)
@@ -89,7 +89,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"ERROR: {error}")
         return 1
     print(
-        "OK: document briefing cache skill repository validated "
+        "OK: briefprint skill repository validated "
         f"({len(tests)} test files, {len((eval_payload or {}).get('cases', []))} eval cases, "
         f"{len((trigger_eval_payload or {}).get('cases', []))} trigger cases, "
         f"{len((invocation_payload or {}).get('cases', []))} model benchmark cases)"
@@ -109,8 +109,8 @@ def validate_installable_skill_metadata(skill_path: Path) -> list[str]:
         frontmatter = ""
         errors.append("Installable SKILL.md must include YAML frontmatter.")
 
-    if not re.search(r"---\s*\nname:\s*document-briefing-cache", skill):
-        errors.append("Installable SKILL.md must include metadata name: document-briefing-cache")
+    if not re.search(r"---\s*\nname:\s*briefprint", skill):
+        errors.append("Installable SKILL.md must include metadata name: briefprint")
     if "description:" not in frontmatter:
         errors.append("Installable SKILL.md metadata must include description")
     for term in REQUIRED_SKILL_TERMS:
@@ -254,12 +254,12 @@ def validate_openai_yaml(path: Path) -> list[str]:
     required_fragments = [
         'version: "0.3.1"',
         "interface:",
-        'display_name: "Document Briefing Cache"',
-        'short_description: "Rerender cached structured briefings without re-summarizing unchanged documents."',
-        "$document-briefing-cache",
+        'display_name: "Briefprint"',
+        'short_description: "Read once. Brief anywhere. Reuse structured document briefings from fingerprinted cache."',
+        "$briefprint",
         "policy:",
         "allow_implicit_invocation: true",
-        'name: "document-briefing-cache"',
+        'name: "briefprint"',
     ]
     for fragment in required_fragments:
         if fragment not in text:
@@ -287,8 +287,8 @@ def validate_installable_skill_bundle(bundle: Path) -> list[str]:
 
     skill = skill_path.read_text(encoding="utf-8")
     frontmatter = skill.split("---", 2)[1] if skill.startswith("---") and "---" in skill[3:] else ""
-    if not re.search(r"^name:\s*document-briefing-cache\s*$", frontmatter, flags=re.MULTILINE):
-        errors.append("Installable skill SKILL.md must include metadata name: document-briefing-cache")
+    if not re.search(r"^name:\s*briefprint\s*$", frontmatter, flags=re.MULTILINE):
+        errors.append("Installable skill SKILL.md must include metadata name: briefprint")
     description_match = re.search(r"^description:\s*(.+)$", frontmatter, flags=re.MULTILINE)
     if not description_match:
         errors.append("Installable skill SKILL.md metadata must include description.")
