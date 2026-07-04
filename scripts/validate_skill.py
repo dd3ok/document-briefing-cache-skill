@@ -57,18 +57,7 @@ def main(argv: list[str] | None = None) -> int:
     if (ROOT / "SKILL.md").exists():
         errors.append("Repository root must not contain SKILL.md; installable skill lives under skills/document-briefing-cache.")
 
-    skill = (ROOT / "skills" / "document-briefing-cache" / "SKILL.md").read_text(encoding="utf-8")
-    if not re.search(r"---\s*\nname:\s*document-briefing-cache", skill):
-        errors.append("Installable SKILL.md must include metadata name: document-briefing-cache")
-    if "description:" not in skill.split("---", 2)[1]:
-        errors.append("Installable SKILL.md metadata must include description")
-    for term in REQUIRED_SKILL_TERMS:
-        if term not in skill:
-            errors.append(f"Installable SKILL.md should mention: {term}")
-    if "news only" in skill.lower():
-        errors.append("Skill should not be scoped to news only.")
-    if "compare" in skill.split("---", 2)[1].lower():
-        errors.append("Installable SKILL.md metadata should not mention compare unless a compare mode exists.")
+    errors.extend(validate_installable_skill_metadata(ROOT / "skills" / "document-briefing-cache" / "SKILL.md"))
 
     template_dir = ROOT / "src" / "document_briefing_cache" / "templates"
     modes = {path.stem.replace(".md", "") for path in template_dir.glob("*.md.j2")}
@@ -108,6 +97,32 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
+def validate_installable_skill_metadata(skill_path: Path) -> list[str]:
+    if not skill_path.exists():
+        return [f"Missing installable skill metadata: {display_path(skill_path)}"]
+
+    errors: list[str] = []
+    skill = skill_path.read_text(encoding="utf-8")
+    if skill.startswith("---") and "---" in skill[3:]:
+        frontmatter = skill.split("---", 2)[1]
+    else:
+        frontmatter = ""
+        errors.append("Installable SKILL.md must include YAML frontmatter.")
+
+    if not re.search(r"---\s*\nname:\s*document-briefing-cache", skill):
+        errors.append("Installable SKILL.md must include metadata name: document-briefing-cache")
+    if "description:" not in frontmatter:
+        errors.append("Installable SKILL.md metadata must include description")
+    for term in REQUIRED_SKILL_TERMS:
+        if term not in skill:
+            errors.append(f"Installable SKILL.md should mention: {term}")
+    if "news only" in skill.lower():
+        errors.append("Skill should not be scoped to news only.")
+    if "compare" in frontmatter.lower():
+        errors.append("Installable SKILL.md metadata should not mention compare unless a compare mode exists.")
+    return errors
+
+
 def validate_imports() -> list[str]:
     sys.path.insert(0, str(ROOT / "src"))
     try:
@@ -117,6 +132,13 @@ def validate_imports() -> list[str]:
     except Exception as exc:
         return [f"Package import failed: {exc}"]
     return []
+
+
+def display_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
 
 
 def validate_eval_cases(path: Path) -> tuple[dict | None, list[str]]:

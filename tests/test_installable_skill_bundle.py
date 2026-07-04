@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import re
 from pathlib import Path
 
@@ -73,7 +74,28 @@ def test_agent_skill_installation_doc_covers_lightweight_vendor_paths():
         assert vendor in doc
 
 
+def test_validate_skill_reports_missing_installable_skill_without_crashing(tmp_path):
+    module = _load_validate_skill_module()
+    missing_skill = tmp_path / "document-briefing-cache" / "SKILL.md"
+
+    errors = module.validate_installable_skill_metadata(missing_skill)
+
+    assert len(errors) == 1
+    assert "Missing installable skill metadata" in errors[0]
+    assert "SKILL.md" in errors[0]
+
+
 def _frontmatter_value(frontmatter: str, key: str) -> str:
     match = re.search(rf"^{re.escape(key)}:\s*(.+)$", frontmatter, flags=re.MULTILINE)
     assert match is not None, key
     return match.group(1).strip().strip('"')
+
+
+def _load_validate_skill_module():
+    path = ROOT / "scripts" / "validate_skill.py"
+    spec = importlib.util.spec_from_file_location("validate_skill_for_test", path)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
