@@ -71,6 +71,13 @@ def test_agent_skill_installation_doc_covers_lightweight_vendor_paths():
     assert "~/.codex/skills" not in doc
     assert "npx skills install" not in doc
     assert "npx skills add" in doc
+    for section in [
+        "Verified surfaces",
+        "Community-compatible notes",
+        "Last checked: 2026-07-04",
+        "Verify installed files",
+    ]:
+        assert section in doc
     for vendor in ["Codex", "Claude Code", "Gemini CLI", "Antigravity", "OpenClaw", "Hermes"]:
         assert vendor in doc
 

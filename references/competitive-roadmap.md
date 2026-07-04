@@ -1,8 +1,8 @@
 # Competitive Roadmap
 
-Status: proposed  
-Last reviewed: 2026-07-03  
-Scope: lightweight roadmap for keeping this repository a compact exact-cache document briefing skill.
+Status: implemented through P5; deferred items remain
+Last reviewed: 2026-07-04
+Scope: lightweight status record for keeping this repository a compact exact-cache document briefing skill.
 
 ## Position
 
@@ -20,6 +20,19 @@ The competitive wedge is not a broader document platform, RAG system, semantic c
 4. Rendered claims are evidence-backed, or gaps are visible as warnings or unknowns.
 
 Every roadmap item should strengthen one of those claims without making `SKILL.md` or the runtime surface heavy.
+
+## Current implementation status
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| P0 Demo-first lifecycle | Implemented | `examples/incident_lifecycle/` and benchmark docs exist. |
+| P1 Cache explain / document cache trace | Implemented | `PipelineStats.document_cache_events`, `PipelineStats.output_cache_event`, and CLI `--explain-cache` exist. |
+| P2 Narrow incident record splitting | Implemented as incident-only slice | CLI supports `--split-records incident`; broader parsers remain out of scope. |
+| P3 Workflow and nuance evals | Implemented | `evals/briefing_eval_cases.json` includes nuance fixtures for status, absence-of-evidence wording, and communication restrictions. |
+| P4 Skill metadata tightening | Implemented | Metadata exists and uses a routing-oriented short description. |
+| P5 Sensitive preset | Implemented | `--sensitive` is a thin alias; `--redact-secrets` remains explicit. |
+
+The items below that remain deferred or rejected should not be added without new failing fixtures, a clear user need, and a separate plan.
 
 ## Evidence Reviewed
 
@@ -160,7 +173,6 @@ class DocumentCacheEvent(BaseModel):
         "miss_cache_disabled",
         "expired_ttl",
         "corrupt_validation_failed",
-        "corrupt_hmac_failed",
         "rejected_contract_mismatch",
     ]
     summarizer_id: str

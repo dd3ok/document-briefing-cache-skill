@@ -2,7 +2,7 @@ version: "0.3.1"
 
 interface:
   display_name: "Briefprint"
-  short_description: "Read once. Brief anywhere. Reuse structured document briefings from fingerprinted cache."
+  short_description: "Rerender cached document briefings without re-summarizing unchanged supplied documents."
   default_prompt: "Use $briefprint to summarize the supplied documents into a cached briefing and include cache stats."
 
 policy:
@@ -31,6 +31,6 @@ metadata:
     - "Do not use for source-code review or debugging."
     - "Do not use when there is no document-like input to cache or rerender."
   privacy:
-    - "rules mode is local and token-free."
+    - "Rules mode is local and token-free when the runtime provides it."
     - "LLM-backed modes send cache misses to the configured provider."
     - "Cache files may contain names, IDs, dates, metrics, sources, and evidence quotes."

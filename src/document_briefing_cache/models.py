@@ -162,7 +162,6 @@ class DocumentCacheEvent(BaseModel):
         "miss_cache_disabled",
         "expired_ttl",
         "corrupt_validation_failed",
-        "corrupt_hmac_failed",
         "rejected_contract_mismatch",
     ]
     summarizer_id: str

@@ -2,7 +2,7 @@ version: "0.3.1"
 
 interface:
   display_name: "Briefprint"
-  short_description: "Read once. Brief anywhere. Reuse structured document briefings from fingerprinted cache."
+  short_description: "Rerender cached document briefings without re-summarizing unchanged supplied documents."
   default_prompt: "Use $briefprint to summarize the supplied documents into a cached briefing and include cache stats."
 
 policy:

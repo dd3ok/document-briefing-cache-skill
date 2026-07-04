@@ -256,7 +256,7 @@ def validate_openai_yaml(path: Path) -> list[str]:
         'version: "0.3.1"',
         "interface:",
         'display_name: "Briefprint"',
-        'short_description: "Read once. Brief anywhere. Reuse structured document briefings from fingerprinted cache."',
+        'short_description: "Rerender cached document briefings without re-summarizing unchanged supplied documents."',
         "$briefprint",
         "policy:",
         "allow_implicit_invocation: true",

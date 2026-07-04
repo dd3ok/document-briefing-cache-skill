@@ -61,6 +61,13 @@ pip install -e ".[llm]"  # OpenAI 기반 구조화 요약기
 pip install -e ".[pdf]"  # PDF 텍스트 추출 helper
 ```
 
+이름 안내:
+
+- 에이전트 스킬: `briefprint`
+- Python 패키지/CLI: `document-briefing-cache` / `document_briefing_cache`
+
+런타임 이름은 패키지 호환성을 위해 유지하고, 설치 가능한 에이전트 스킬은 Briefprint로 브랜딩합니다.
+
 샘플 실행:
 
 ```bash
@@ -212,6 +219,8 @@ python -m document_briefing_cache.cli run \
 `--redact-pii`는 `basic-contact-v1` 프로필을 적용합니다. 이메일, 한국 휴대폰 번호, 미국 전화번호를 다루지만 완전한 PII 탐지기는 아닙니다.
 
 `--redact-secrets`는 `basic-secrets-v1` 프로필을 적용합니다. bearer tokens, API keys, webhook URLs, card-like values, secret-shaped JSON keys를 best-effort로 가립니다. Secret redaction is not included in --sensitive; 민감 문서에 비밀값이 들어갈 수 있으면 별도로 켜야 합니다.
+
+`--redact-secrets`는 `session_id`처럼 운영 상관관계 분석에 쓰이는 값도 secret-shaped key 아래에 있으면 가릴 수 있습니다. 정확한 추적보다 비밀값 보호가 더 중요한 경우에 켜세요.
 
 `--cache-hmac-secret-env`는 HMAC-SHA256으로 캐시 envelope을 서명합니다. HMAC은 tamper detection only, not encryption 입니다. 캐시 내용 자체를 숨겨야 한다면 encrypted storage, tmpfs, 또는 별도 암호화 저장소를 사용해야 합니다.
 
