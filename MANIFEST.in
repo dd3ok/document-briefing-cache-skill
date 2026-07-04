@@ -1,7 +1,8 @@
 recursive-include src/document_briefing_cache/templates *.md.j2
-include README.md LICENSE AGENTS.md SKILL.md VALIDATION.md
+include README.md LICENSE AGENTS.md VALIDATION.md
 recursive-include examples *.json
 recursive-include evals *.json
 recursive-include references *.md
 recursive-include agents *.yaml
 recursive-include docs *.md
+recursive-include skills *.md *.yaml

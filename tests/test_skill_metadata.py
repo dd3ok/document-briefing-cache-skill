@@ -5,6 +5,7 @@ from document_briefing_cache.pipeline import SKILL_VERSION
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SKILL = ROOT / "skills" / "document-briefing-cache" / "SKILL.md"
 
 
 def test_versions_are_synchronized_to_0_3_1():
@@ -29,10 +30,14 @@ def test_openai_yaml_uses_interface_metadata():
 
 
 def test_skill_description_matches_supported_modes_and_boundary():
-    skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+    skill = SKILL.read_text(encoding="utf-8")
 
     frontmatter = skill.split("---", 2)[1]
     assert "compare" not in frontmatter
     assert "source-code review/debugging" in frontmatter
     assert "code-review notes or PR discussion documents" in skill
     assert "Tradeoff:" in skill
+
+
+def test_repository_root_is_not_installable_as_agent_skill():
+    assert not (ROOT / "SKILL.md").exists()

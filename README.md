@@ -49,13 +49,17 @@ DocumentInput으로 정규화
 
 ```text
 .
-├── SKILL.md
 ├── README.md
 ├── AGENTS.md
 ├── VALIDATION.md
 ├── pyproject.toml
 ├── agents/
 │   └── openai.yaml
+├── skills/
+│   └── document-briefing-cache/
+│       ├── SKILL.md
+│       ├── agents/openai.yaml
+│       └── references/
 ├── src/document_briefing_cache/
 │   ├── models.py
 │   ├── hashing.py
@@ -92,6 +96,13 @@ DocumentInput으로 정규화
 ```
 
 ## Install
+
+For agent hosts such as Codex, Claude Code, Gemini CLI, Antigravity, OpenClaw,
+or Hermes, install the lightweight skill bundle at
+`skills/document-briefing-cache`. Do not install the repository root as an
+agent skill, because root-copy installers can include tests, docs, examples,
+evals, source code, and validation scripts. See
+[`docs/agent-skill-installation.md`](docs/agent-skill-installation.md).
 
 ```bash
 python3 -m venv .venv
