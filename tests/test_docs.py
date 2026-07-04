@@ -2,6 +2,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SKILL = ROOT / "skills" / "document-briefing-cache" / "SKILL.md"
 
 
 def test_readme_documents_trigger_eval_fixture_and_scope():
@@ -33,7 +34,7 @@ def test_agents_documents_sensitive_cache_defaults():
 
 def test_readme_documents_local_path_and_url_metadata_boundary():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+    skill = SKILL.read_text(encoding="utf-8")
 
     assert "--input" in readme
     assert "local file path" in readme
@@ -45,7 +46,7 @@ def test_readme_documents_local_path_and_url_metadata_boundary():
 
 def test_readme_documents_redaction_scope_and_security_limits():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+    skill = SKILL.read_text(encoding="utf-8")
     best_practices = (ROOT / "references" / "best-practices.md").read_text(encoding="utf-8")
     combined = "\n".join([readme, skill, best_practices])
 

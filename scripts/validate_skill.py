@@ -10,7 +10,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 REQUIRED_FILES = [
-    "SKILL.md",
     "README.md",
     "AGENTS.md",
     "pyproject.toml",
@@ -27,6 +26,12 @@ REQUIRED_FILES = [
     "evals/trigger_eval_cases.json",
     "evals/model_invocation_benchmark_cases.json",
     "agents/openai.yaml",
+    "skills/document-briefing-cache/SKILL.md",
+    "skills/document-briefing-cache/agents/openai.yaml",
+    "skills/document-briefing-cache/references/architecture.md",
+    "skills/document-briefing-cache/references/schema.md",
+    "skills/document-briefing-cache/references/llm-contract.md",
+    "skills/document-briefing-cache/references/best-practices.md",
 ]
 
 REQUIRED_SKILL_TERMS = [
@@ -49,18 +54,21 @@ def main(argv: list[str] | None = None) -> int:
         if not (ROOT / rel).exists():
             errors.append(f"Missing required file: {rel}")
 
-    skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+    if (ROOT / "SKILL.md").exists():
+        errors.append("Repository root must not contain SKILL.md; installable skill lives under skills/document-briefing-cache.")
+
+    skill = (ROOT / "skills" / "document-briefing-cache" / "SKILL.md").read_text(encoding="utf-8")
     if not re.search(r"---\s*\nname:\s*document-briefing-cache", skill):
-        errors.append("SKILL.md must include metadata name: document-briefing-cache")
+        errors.append("Installable SKILL.md must include metadata name: document-briefing-cache")
     if "description:" not in skill.split("---", 2)[1]:
-        errors.append("SKILL.md metadata must include description")
+        errors.append("Installable SKILL.md metadata must include description")
     for term in REQUIRED_SKILL_TERMS:
         if term not in skill:
-            errors.append(f"SKILL.md should mention: {term}")
+            errors.append(f"Installable SKILL.md should mention: {term}")
     if "news only" in skill.lower():
         errors.append("Skill should not be scoped to news only.")
     if "compare" in skill.split("---", 2)[1].lower():
-        errors.append("SKILL.md metadata should not mention compare unless a compare mode exists.")
+        errors.append("Installable SKILL.md metadata should not mention compare unless a compare mode exists.")
 
     template_dir = ROOT / "src" / "document_briefing_cache" / "templates"
     modes = {path.stem.replace(".md", "") for path in template_dir.glob("*.md.j2")}
@@ -74,6 +82,7 @@ def main(argv: list[str] | None = None) -> int:
         errors.append("Expected at least four test files.")
     errors.extend(validate_imports())
     errors.extend(validate_openai_yaml(ROOT / "agents" / "openai.yaml"))
+    errors.extend(validate_installable_skill_bundle(ROOT / "skills" / "document-briefing-cache"))
     eval_path = ROOT / "evals" / "briefing_eval_cases.json"
     eval_payload, eval_errors = validate_eval_cases(eval_path)
     errors.extend(eval_errors)
@@ -233,6 +242,49 @@ def validate_openai_yaml(path: Path) -> list[str]:
     for fragment in required_fragments:
         if fragment not in text:
             errors.append(f"agents/openai.yaml missing required metadata fragment: {fragment}")
+    return errors
+
+
+def validate_installable_skill_bundle(bundle: Path) -> list[str]:
+    errors: list[str] = []
+    skill_path = bundle / "SKILL.md"
+    if not skill_path.exists():
+        return [f"Missing installable skill bundle: {skill_path.relative_to(ROOT)}"]
+
+    forbidden_dirs = {".github", "docs", "evals", "examples", "scripts", "src", "tests"}
+    present_forbidden = sorted(name for name in forbidden_dirs if (bundle / name).exists())
+    if present_forbidden:
+        errors.append(f"Installable skill bundle must not include development-only directories: {present_forbidden}")
+
+    files = [path.relative_to(bundle).as_posix() for path in bundle.rglob("*") if path.is_file()]
+    if len(files) > 8:
+        errors.append(f"Installable skill bundle should stay small; found {len(files)} files.")
+    forbidden_suffixes = tuple(file for file in files if file.endswith((".py", ".json", ".toml")))
+    if forbidden_suffixes:
+        errors.append(f"Installable skill bundle should not include runtime/test/package files: {list(forbidden_suffixes)}")
+
+    skill = skill_path.read_text(encoding="utf-8")
+    frontmatter = skill.split("---", 2)[1] if skill.startswith("---") and "---" in skill[3:] else ""
+    if not re.search(r"^name:\s*document-briefing-cache\s*$", frontmatter, flags=re.MULTILINE):
+        errors.append("Installable skill SKILL.md must include metadata name: document-briefing-cache")
+    description_match = re.search(r"^description:\s*(.+)$", frontmatter, flags=re.MULTILINE)
+    if not description_match:
+        errors.append("Installable skill SKILL.md metadata must include description.")
+    elif len(description_match.group(1).strip().strip('"')) > 1024:
+        errors.append("Installable skill description must be at most 1024 characters.")
+
+    root_only_fragments = ["src/", "tests/", "evals/", "examples/", "scripts/", "VALIDATION.md", "pyproject.toml", "pip install"]
+    for fragment in root_only_fragments:
+        if fragment in skill:
+            errors.append(f"Installable skill SKILL.md should not reference repository-only path or command: {fragment}")
+
+    for reference in re.findall(r"`(references/[^`]+\.md)`", skill):
+        reference_path = bundle / reference
+        if not reference_path.exists():
+            errors.append(f"Installable skill references missing file: {reference}")
+        elif reference_path.parent != bundle / "references":
+            errors.append(f"Installable skill references must stay under references/: {reference}")
+
     return errors
 
 
