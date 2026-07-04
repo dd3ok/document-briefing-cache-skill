@@ -24,12 +24,6 @@ skills/briefprint/
 
 It intentionally excludes `tests`, `docs`, `examples`, `evals`, `src`, and `scripts`.
 
-## Migration From Older Installs
-
-Briefprint previously used the installable skill name `document-briefing-cache`.
-Replace old `$document-briefing-cache` calls with `$briefprint`, remove the old
-skill directory, and install `skills/briefprint`.
-
 ## Codex
 
 Codex skills use a directory containing `SKILL.md`. Codex reads only skill metadata at startup, then loads `SKILL.md` and referenced files progressively when the skill is relevant.
@@ -79,7 +73,7 @@ cp -R skills/briefprint ~/.agents/skills/briefprint
 
 ## Antigravity
 
-Google describes Antigravity skills as lightweight, open-format agent extensions and points users to `npx skills add` for compatible installations. Because installer flags vary by version, do not accept an install unless it selects the `briefprint` skill under `skills/briefprint`.
+Google describes Antigravity skills as lightweight, open-format agent extensions and points users to `npx skills add` for skill installations. Because installer flags vary by version, do not accept an install unless it selects the `briefprint` skill under `skills/briefprint`.
 
 Recommended install:
 
@@ -113,7 +107,7 @@ Run `openclaw skills list` or `openclaw skills check` after installation.
 
 ## Hermes
 
-Hermes uses `~/.hermes/skills` for primary skill storage and supports Agent Skills compatible repositories. It can install a single GitHub skill path.
+Hermes uses `~/.hermes/skills` for primary skill storage and supports Agent Skills repositories. It can install a single GitHub skill path.
 
 Recommended installs:
 

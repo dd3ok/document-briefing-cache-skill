@@ -13,14 +13,13 @@ def test_readme_documents_trigger_eval_fixture_and_scope():
     assert "not measure actual model-side invocation behavior" in readme
 
 
-def test_readme_documents_briefprint_skill_migration():
+def test_readme_documents_briefprint_skill_branding():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
     assert readme.startswith("# Briefprint")
     assert "Read once. Brief anywhere." in readme
     assert "github.com/dd3ok/briefprint" in readme
     assert "briefprint` agent skill" in readme
-    assert "$document-briefing-cache` calls with `$briefprint" in readme
     assert "briefprint-skill" not in readme
 
 

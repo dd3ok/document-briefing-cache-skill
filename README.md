@@ -8,8 +8,6 @@ Read once. Brief anywhere.
 
 Briefprint packages the `briefprint` agent skill and Python runtime. The installable skill name is now `briefprint`.
 
-Migration note: replace old `$document-briefing-cache` calls with `$briefprint`, and install `skills/briefprint` instead of the previous skill directory.
-
 `Briefprint`는 **AI 에이전트 워크플로우(AI Agent Workflow)**에서 **LLM 토큰 최적화(LLM Token Optimization)**를 위해 설계된 경량 스킬 리포지토리입니다. 방대한 문서를 재사용 가능한 구조화된 브리핑으로 변환하고 캐싱하여, 중복되는 **LLM 호출(LLM Calls)**을 줄이고 **컨텍스트 윈도우 관리(Context Window Management)**를 효율화합니다. 문서의 디지털 지문(fingerprint)을 기반으로 캐시를 관리하여, 한 번 요약된 내용은 포맷 변환이나 반복 요청 시 LLM을 다시 호출할 필요 없이 재사용됩니다. 이는 특히 **LLM 기반 애플리케이션(LLM-powered applications)**의 비용 효율성과 응답 속도를 크게 향상시키는 데 기여합니다.
 
 이 스킬은 다음과 같은 워크플로우를 위해 설계되었습니다:
