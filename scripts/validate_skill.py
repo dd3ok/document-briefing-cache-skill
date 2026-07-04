@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 REQUIRED_FILES = [
     "README.md",
+    "README.ko.md",
     "AGENTS.md",
     "pyproject.toml",
     "src/document_briefing_cache/models.py",
