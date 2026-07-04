@@ -1,15 +1,15 @@
 version: "0.3.1"
 
 interface:
-  display_name: "Document Briefing Cache"
-  short_description: "Rerender cached structured briefings without re-summarizing unchanged documents."
-  default_prompt: "Use $document-briefing-cache to summarize the supplied documents into a cached briefing and include cache stats."
+  display_name: "Briefprint"
+  short_description: "Read once. Brief anywhere. Reuse structured document briefings from fingerprinted cache."
+  default_prompt: "Use $briefprint to summarize the supplied documents into a cached briefing and include cache stats."
 
 policy:
   allow_implicit_invocation: true
 
 metadata:
-  name: "document-briefing-cache"
+  name: "briefprint"
   entrypoint: "SKILL.md"
   summary: "Normalizes supplied document-like inputs, caches DocumentSummaryState per fingerprint, and renders repeated briefings without unnecessary LLM calls."
   supported_modes:

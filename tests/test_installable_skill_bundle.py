@@ -6,11 +6,12 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BUNDLE = ROOT / "skills" / "document-briefing-cache"
+BUNDLE = ROOT / "skills" / "briefprint"
 
 
 def test_installable_skill_bundle_contains_only_skill_surface():
     assert not (ROOT / "SKILL.md").exists()
+    assert not (ROOT / "skills" / "document-briefing-cache").exists()
     assert (BUNDLE / "SKILL.md").is_file()
     assert (BUNDLE / "agents" / "openai.yaml").is_file()
     assert (BUNDLE / "references").is_dir()
@@ -38,7 +39,7 @@ def test_installable_skill_bundle_frontmatter_and_references_are_portable():
 
     name = _frontmatter_value(frontmatter, "name")
     description = _frontmatter_value(frontmatter, "description")
-    assert name == "document-briefing-cache"
+    assert name == "briefprint"
     assert re.fullmatch(r"[a-z0-9-]{1,64}", name)
     assert description
     assert len(description) <= 1024
@@ -65,9 +66,11 @@ def test_installable_skill_bundle_frontmatter_and_references_are_portable():
 def test_agent_skill_installation_doc_covers_lightweight_vendor_paths():
     doc = (ROOT / "docs" / "agent-skill-installation.md").read_text(encoding="utf-8")
 
-    assert "skills/document-briefing-cache" in doc
+    assert "skills/briefprint" in doc
     assert "dd3ok/briefprint" in doc
     assert "document-briefing-cache-skill" not in doc
+    assert "$document-briefing-cache" in doc
+    assert "$briefprint" in doc
     assert "Do not install the repository root" in doc
     assert "~/.codex/skills" not in doc
     assert "npx skills install" not in doc
@@ -78,7 +81,7 @@ def test_agent_skill_installation_doc_covers_lightweight_vendor_paths():
 
 def test_validate_skill_reports_missing_installable_skill_without_crashing(tmp_path):
     module = _load_validate_skill_module()
-    missing_skill = tmp_path / "document-briefing-cache" / "SKILL.md"
+    missing_skill = tmp_path / "briefprint" / "SKILL.md"
 
     errors = module.validate_installable_skill_metadata(missing_skill)
 

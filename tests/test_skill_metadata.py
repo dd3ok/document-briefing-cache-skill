@@ -5,7 +5,7 @@ from document_briefing_cache.pipeline import SKILL_VERSION
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL = ROOT / "skills" / "document-briefing-cache" / "SKILL.md"
+SKILL = ROOT / "skills" / "briefprint" / "SKILL.md"
 
 
 def test_versions_are_synchronized_to_0_3_1():
@@ -22,9 +22,10 @@ def test_openai_yaml_uses_interface_metadata():
     openai_yaml = (ROOT / "agents" / "openai.yaml").read_text(encoding="utf-8")
 
     assert "interface:" in openai_yaml
-    assert 'display_name: "Document Briefing Cache"' in openai_yaml
-    assert 'short_description: "Rerender cached structured briefings without re-summarizing unchanged documents."' in openai_yaml
-    assert "$document-briefing-cache" in openai_yaml
+    assert 'display_name: "Briefprint"' in openai_yaml
+    assert 'short_description: "Read once. Brief anywhere. Reuse structured document briefings from fingerprinted cache."' in openai_yaml
+    assert "$briefprint" in openai_yaml
+    assert 'name: "briefprint"' in openai_yaml
     assert "policy:" in openai_yaml
     assert "allow_implicit_invocation: true" in openai_yaml
 

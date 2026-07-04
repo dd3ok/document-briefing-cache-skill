@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "description": "Compact behavioral fixtures for document briefing cache triggers, reuse, structured state, and value preservation.",
+  "description": "Compact behavioral fixtures for Briefprint triggers, reuse, structured state, and value preservation.",
   "cases": [
     {
       "id": "meeting-cache-and-rerender",
