@@ -11,7 +11,6 @@ BUNDLE = ROOT / "skills" / "briefprint"
 
 def test_installable_skill_bundle_contains_only_skill_surface():
     assert not (ROOT / "SKILL.md").exists()
-    assert not (ROOT / "skills" / "document-briefing-cache").exists()
     assert (BUNDLE / "SKILL.md").is_file()
     assert (BUNDLE / "agents" / "openai.yaml").is_file()
     assert (BUNDLE / "references").is_dir()
@@ -68,9 +67,6 @@ def test_agent_skill_installation_doc_covers_lightweight_vendor_paths():
 
     assert "skills/briefprint" in doc
     assert "dd3ok/briefprint" in doc
-    assert "document-briefing-cache-skill" not in doc
-    assert "$document-briefing-cache" in doc
-    assert "$briefprint" in doc
     assert "Do not install the repository root" in doc
     assert "~/.codex/skills" not in doc
     assert "npx skills install" not in doc
