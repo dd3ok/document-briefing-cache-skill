@@ -123,6 +123,29 @@ def test_readmes_document_skill_and_runtime_naming_boundary():
     assert "Python 패키지/CLI: `document-briefing-cache` / `document_briefing_cache`" in korean
 
 
+def test_readmes_document_host_specific_explicit_skill_invocation():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    korean = (ROOT / "README.ko.md").read_text(encoding="utf-8")
+
+    assert "Codex, use `$briefprint`; for Claude Code, use `/briefprint`" in readme
+    assert "host's explicit skill invocation" in readme
+    assert "Codex에서는 `$briefprint`, Claude Code에서는 `/briefprint`" in korean
+    assert "호스트의 명시적 스킬 호출" in korean
+
+
+def test_best_practices_avoid_implicit_trigger_language():
+    root_best_practices = (ROOT / "references" / "best-practices.md").read_text(encoding="utf-8")
+    skill_best_practices = (ROOT / "skills" / "briefprint" / "references" / "best-practices.md").read_text(
+        encoding="utf-8"
+    )
+    combined = "\n".join([root_best_practices, skill_best_practices])
+
+    assert "clear invocation examples and boundaries" in combined
+    assert "description for discoverability and manual invocation guidance" in combined
+    assert "trigger phrases" not in combined
+    assert "precise triggering" not in combined
+
+
 def test_secret_redaction_docs_warn_about_operational_correlation_ids():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     korean = (ROOT / "README.ko.md").read_text(encoding="utf-8")
@@ -135,3 +158,19 @@ def test_secret_redaction_docs_warn_about_operational_correlation_ids():
     assert "운영 상관관계" in korean
     assert "session_id" in best_practices
     assert "session_id" in skill_best_practices
+
+
+def test_docs_separate_agent_skill_bundle_from_runtime_cache():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    korean = (ROOT / "README.ko.md").read_text(encoding="utf-8")
+    install = (ROOT / "docs" / "agent-skill-installation.md").read_text(encoding="utf-8")
+    skill_best_practices = (ROOT / "skills" / "briefprint" / "references" / "best-practices.md").read_text(
+        encoding="utf-8"
+    )
+    combined = "\n".join([readme, korean, install, skill_best_practices])
+
+    assert "skill bundle is static" in combined
+    assert "runtime cache lives under `--cache-dir`" in combined
+    assert "Installing, updating, or removing the agent skill does not migrate, prune, or delete runtime caches" in combined
+    assert "No portable agent-skill host contract currently provides automatic eviction for generated document state" in combined
+    assert "Do not write document caches into the installed skill directory" in combined

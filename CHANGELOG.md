@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Made Briefprint explicit-use in agent metadata so ordinary one-off summaries do not automatically invoke the cached briefing skill.
+- Replaced broad natural-language trigger examples with `$briefprint` invocation examples.
+- Added `disable-model-invocation: true` to the installable skill metadata for hosts that support manual-only skill invocation.
+- Documented the boundary between the static agent skill bundle and Briefprint runtime caches under `--cache-dir`.
+
 ## 0.4.0 - 2026-07-05
 
 ### Added

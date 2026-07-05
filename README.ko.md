@@ -110,7 +110,9 @@ skills/briefprint/
 
 repo 루트를 에이전트 스킬로 설치하지 마세요. 루트 복사 방식은 테스트, 문서, 예제, eval, 소스 코드, 검증 스크립트까지 같이 복사할 수 있습니다. 자세한 내용은 [docs/agent-skill-installation.md](docs/agent-skill-installation.md)를 보세요.
 
-Claude.ai description variant: Cache structured briefings for supplied documents, notes, logs, tickets, reports, JSON/XML, or transcripts. Use for repeated summaries, rerendering, digests, actions, risks, or metrics.
+Briefprint는 명시 호출형 스킬입니다. Codex에서는 `$briefprint`, Claude Code에서는 `/briefprint`를 사용하고, 그 밖의 호스트에서는 해당 호스트의 명시적 스킬 호출 또는 CLI를 사용하세요. 일반적인 일회성 요약이 자동으로 이 스킬을 트리거해서는 안 됩니다.
+
+Claude.ai description variant: Explicit-use cached briefings for supplied documents, notes, logs, tickets, reports, JSON/XML, or transcripts. Use for repeated summaries, rerendering, digests, actions, risks, or metrics.
 
 ## 벤치마크 결과
 
@@ -191,18 +193,31 @@ JSON, XML, HTML, `DocumentInput.source` 안에 들어있는 URL 메타데이터�
 
 권장 기본값:
 
-- 반복 문서에는 `document_summaries`를 TTL 캐시로 유지
-- 템플릿 렌더링은 싸기 때문에 `rendered_outputs`는 짧게 유지
+- repo-local 캐시는 `.cache/briefprint` 아래에 두고 Git에는 올리지 않음
+- 반복 문서에는 `document_summaries`를 짧은 TTL 캐시로 유지
+- 템플릿 렌더링은 싸기 때문에 `rendered_outputs`는 더 짧게 유지
+- 평소 실행 때 `--prune-on-start`로 정리
 - 민감한 일회성 문서는 `ephemeral` 사용
 
 ```bash
 python -m document_briefing_cache.cli run \
   --input examples/mixed_documents.json \
+  --cache-dir .cache/briefprint \
   --cache-policy ttl \
-  --document-ttl 30d \
+  --document-ttl 7d \
   --output-ttl 24h \
   --prune-on-start
 ```
+
+Briefprint는 백그라운드 cleanup daemon을 돌리지 않습니다. TTL은 캐시 항목을 expired로 표시하는 값이고, 실제 파일 삭제는 `cache prune`, `--prune-on-start`, `--prune-on-exit`, delete-on-exit 정책 중 하나가 실행될 때 일어납니다. 이는 로컬 개발 도구에서 흔한 방식입니다. 생성 캐시는 disposable로 보고 Git에서 제외하며, 명시 명령이나 도구 실행 시점에 opportunistic하게 정리합니다. CI 캐시는 예외에 가깝고, GitHub Actions 같은 플랫폼은 자체 last-access/size eviction 정책을 적용합니다.
+
+보존 기간을 길게 잡는 경우는 의도적으로 persistent 캐시를 쓸 때로 제한하세요.
+
+- project-local 기본: `.cache/briefprint`, `--document-ttl 7d`, `--output-ttl 24h`, `--prune-on-start`
+- 민감한 일회성 작업: `--sensitive`
+- 장기 공유 캐시: 명시적 `--cache-policy persistent` 또는 더 긴 `--document-ttl`
+
+스킬 번들과 runtime cache는 별개입니다. 스킬 번들은 설치 시점의 정적 가이드이고, runtime cache는 `--cache-dir` 아래에 생기며 Briefprint CLI/runtime이 관리합니다. 에이전트 스킬을 설치, 업데이트, 삭제해도 runtime cache가 migrate, prune, delete 되지는 않습니다. 생성된 문서 상태에 대해 모든 agent-skill host가 공통으로 제공하는 portable automatic eviction 계약은 없으므로, 설치된 스킬 디렉터리 안에 문서 캐시를 쓰지 마세요.
 
 민감 문서:
 
@@ -227,9 +242,9 @@ python -m document_briefing_cache.cli run \
 캐시 관리:
 
 ```bash
-python -m document_briefing_cache.cli cache stats --cache-dir .cache --json
-python -m document_briefing_cache.cli cache prune --cache-dir .cache --older-than 30d --dry-run --json
-python -m document_briefing_cache.cli cache clear --cache-dir .cache --layer rendered_outputs --yes
+python -m document_briefing_cache.cli cache stats --cache-dir .cache/briefprint --json
+python -m document_briefing_cache.cli cache prune --cache-dir .cache/briefprint --older-than 7d --dry-run --json
+python -m document_briefing_cache.cli cache clear --cache-dir .cache/briefprint --layer rendered_outputs --yes
 ```
 
 ## LLM 요약기

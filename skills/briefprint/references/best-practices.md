@@ -17,6 +17,10 @@ Install only the skill surface:
 - optional metadata,
 - no tests, validation harness, benchmark fixtures, or runtime source unless the host explicitly needs them.
 
+The skill bundle is static install-time guidance. Briefprint's runtime cache lives under `--cache-dir`; it is created by the CLI/runtime, not by the installed skill bundle. Installing, updating, or removing the agent skill does not migrate, prune, or delete runtime caches. No portable agent-skill host contract currently provides automatic eviction for generated document state. Do not write document caches into the installed skill directory.
+
+Prefer clear invocation examples and boundaries over broad auto-routing cues. For manual-only hosts, the description is for discoverability and manual invocation guidance, not for broad automatic routing.
+
 ## Interpret Benchmarks Carefully
 
 Track at least:

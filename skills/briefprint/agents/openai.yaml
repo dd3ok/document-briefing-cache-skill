@@ -6,7 +6,7 @@ interface:
   default_prompt: "Use $briefprint to summarize the supplied documents into a cached briefing and include cache stats."
 
 policy:
-  allow_implicit_invocation: true
+  allow_implicit_invocation: false
 
 metadata:
   name: "briefprint"
@@ -18,14 +18,10 @@ metadata:
     - "action_items"
     - "digest"
     - "debug"
-  triggers:
-    - "summarize these supplied documents"
-    - "brief this report from cache"
-    - "recap these meeting notes and reuse the summary"
-    - "summarize this JSON or XML payload"
-    - "create an executive digest for this document set"
-    - "rerender this briefing as digest or action_items"
-    - "summarize again without reprocessing the same documents"
+  invocation_examples:
+    - "$briefprint summarize supplied documents into a cached briefing"
+    - "$briefprint rerender cached briefing as digest"
+    - "$briefprint reuse cached document summaries"
   boundaries:
     - "Do not use for live research or current-fact lookup."
     - "Do not use for source-code review or debugging."
