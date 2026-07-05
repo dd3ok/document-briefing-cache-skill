@@ -1,6 +1,6 @@
 ---
 name: briefprint
-description: Use for supplied documents, notes, logs, tickets, reports, transcripts, JSON/XML/API payloads, or cached briefing state when the user asks to summarize, brief, digest, recap, or rerender them while reusing structured document summaries. Do not use for live research, source-code review/debugging, general writing, translation-only edits, simple Q&A, or analysis without cacheable document input.
+description: Use to summarize, brief, digest, recap, or rerender supplied docs/notes/tickets/logs/reports/transcripts, JSON/XML/API, or cached briefing state. Not for live research, source-code review/debugging, translation-only, simple Q&A, or no cacheable document input.
 ---
 
 # Briefprint

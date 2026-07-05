@@ -16,6 +16,15 @@ Last checked: 2026-07-04
 
 Community host commands below are examples to verify against the current host documentation before use. Prefer any current host option that installs the `skills/briefprint` subdirectory without copying the repository root.
 
+| Host | Install example | Drift risk | Required post-check |
+| --- | --- | --- | --- |
+| Gemini CLI | Use the current `gemini skills` subpath flow or copy the bundle to `.agents/skills/briefprint`. | Installer flags can change. | Verify the installed directory is `skills/briefprint`, not the repository root. |
+| Antigravity | `npx skills add dd3ok/briefprint`, then select only `briefprint` when prompted. | Interactive selection can copy too much if the root is selected. | Verify only `SKILL.md`, `agents/openai.yaml`, and `references/*.md` were installed. |
+| OpenClaw | Use the current OpenClaw installer for local `./skills/briefprint`, or copy the bundle to `.agents/skills/briefprint`. | Discovery paths vary by workspace and user scope. | Run the host's skills list/check command and verify the selected path. |
+| Hermes | Use the current Hermes single-path install for `dd3ok/briefprint/skills/briefprint`, or copy the bundle to `~/.hermes/skills/briefprint`. | GitHub path syntax can drift. | Verify only the lightweight bundle files are present. |
+
+Use the source links at the end of this document to confirm current host syntax before publishing or automating these examples.
+
 This repository has two different install surfaces:
 
 - Python package/runtime: installs `document_briefing_cache` code and templates.
@@ -88,66 +97,6 @@ cp -R skills/briefprint .claude/skills/briefprint
 ```
 
 For Claude API skill upload flows, zip a common root that contains this bundle, not the whole repository.
-
-## Gemini CLI
-
-Gemini CLI supports user and workspace skill directories, including interoperable `.agents/skills` locations. It also supports installing a skill from a Git repository subpath.
-
-Recommended installs:
-
-```bash
-gemini skills install https://github.com/dd3ok/briefprint.git --path skills/briefprint --scope user
-
-mkdir -p ~/.agents/skills
-cp -R skills/briefprint ~/.agents/skills/briefprint
-```
-
-## Antigravity
-
-Google describes Antigravity skills as lightweight, open-format agent extensions and points users to `npx skills add` for skill installations. Because installer flags vary by version, do not accept an install unless it selects the `briefprint` skill under `skills/briefprint`.
-
-Recommended install:
-
-```bash
-mkdir -p .agents/skills
-cp -R skills/briefprint .agents/skills/briefprint
-```
-
-Optional installer flow:
-
-```bash
-npx skills add dd3ok/briefprint
-```
-
-Use the interactive prompt to select only `briefprint`, then verify the installed directory contains only `SKILL.md`, `agents/openai.yaml`, and `references/*.md`.
-
-## OpenClaw
-
-OpenClaw discovers skills from workspace `skills`, project `.agents/skills`, personal `~/.agents/skills`, and managed `~/.openclaw/skills` locations.
-
-Recommended installs:
-
-```bash
-mkdir -p skills .agents/skills ~/.agents/skills
-cp -R skills/briefprint .agents/skills/briefprint
-
-openclaw skills install ./skills/briefprint --as briefprint
-```
-
-Run `openclaw skills list` or `openclaw skills check` after installation.
-
-## Hermes
-
-Hermes uses `~/.hermes/skills` for primary skill storage and supports Agent Skills repositories. It can install a single GitHub skill path.
-
-Recommended installs:
-
-```bash
-hermes skills install dd3ok/briefprint/skills/briefprint
-
-mkdir -p ~/.hermes/skills
-cp -R skills/briefprint ~/.hermes/skills/briefprint
-```
 
 ## Validation
 

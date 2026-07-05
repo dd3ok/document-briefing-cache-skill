@@ -42,6 +42,7 @@ def test_installable_skill_bundle_frontmatter_and_references_are_portable():
     assert re.fullmatch(r"[a-z0-9-]{1,64}", name)
     assert description
     assert len(description) <= 1024
+    assert len(description) <= 260
 
     root_only_fragments = [
         "src/",
@@ -70,7 +71,6 @@ def test_agent_skill_installation_doc_covers_lightweight_vendor_paths():
     assert "Do not install the repository root" in doc
     assert "~/.codex/skills" not in doc
     assert "npx skills install" not in doc
-    assert "npx skills add" in doc
     for section in [
         "Verified surfaces",
         "Community-compatible notes",
@@ -82,6 +82,17 @@ def test_agent_skill_installation_doc_covers_lightweight_vendor_paths():
     assert "Claude Code personal and project skill folders" in doc
     for vendor in ["Codex", "Claude Code", "Gemini CLI", "Antigravity", "OpenClaw", "Hermes"]:
         assert vendor in doc
+
+    community_notes = doc.split("## Community-compatible notes", 1)[1].split("## Bundle Contents", 1)[0]
+    for vendor in ["Gemini CLI", "Antigravity", "OpenClaw", "Hermes"]:
+        assert vendor in community_notes
+        assert f"## {vendor}" not in doc
+    assert "skills/briefprint" in community_notes
+    assert "repository root" in community_notes
+    assert "verify" in community_notes.lower()
+    assert "SKILL.md" in community_notes
+    assert "agents/openai.yaml" in community_notes
+    assert "references/*.md" in community_notes
 
 
 def test_validate_skill_reports_missing_installable_skill_without_crashing(tmp_path):

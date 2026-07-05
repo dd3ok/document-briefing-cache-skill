@@ -44,6 +44,23 @@ def test_skill_description_matches_supported_modes_and_boundary():
     skill = SKILL.read_text(encoding="utf-8")
 
     frontmatter = skill.split("---", 2)[1]
+    description = next(
+        line.split(":", 1)[1].strip().strip('"') for line in frontmatter.splitlines() if line.startswith("description:")
+    )
+    assert len(description) <= 260
+    description_lower = description.lower()
+    for term in ["summarize", "brief", "digest", "recap", "rerender", "cached briefing state"]:
+        assert term in description_lower
+    for input_kind in ["docs", "notes", "tickets", "logs", "reports", "transcripts", "json/xml/api"]:
+        assert input_kind in description_lower
+    for boundary in [
+        "live research",
+        "source-code review/debugging",
+        "translation-only",
+        "simple q&a",
+        "cacheable document input",
+    ]:
+        assert boundary in description_lower
     assert "compare" not in frontmatter
     assert "source-code review/debugging" in frontmatter
     assert "code-review notes or PR discussion documents" in skill
