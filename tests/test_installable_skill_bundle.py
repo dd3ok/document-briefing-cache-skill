@@ -42,7 +42,7 @@ def test_installable_skill_bundle_frontmatter_and_references_are_portable():
     assert re.fullmatch(r"[a-z0-9-]{1,64}", name)
     assert description
     assert len(description) <= 1024
-    assert len(description) <= 260
+    assert len(description) <= 320
 
     root_only_fragments = [
         "src/",

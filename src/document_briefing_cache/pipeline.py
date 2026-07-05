@@ -26,7 +26,7 @@ from .privacy import redact_configured_document_input, redaction_policy_id
 from .render import TEMPLATE_VERSION, render_briefing
 from .summarizers import BaseSummarizer, RuleBasedExtractiveSummarizer
 
-SKILL_VERSION = "0.3.1"
+SKILL_VERSION = "0.4.0"
 
 
 class BriefingPipeline:
