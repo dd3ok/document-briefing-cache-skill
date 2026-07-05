@@ -253,7 +253,7 @@ def validate_openai_yaml(path: Path) -> list[str]:
     text = path.read_text(encoding="utf-8")
     errors = []
     required_fragments = [
-        'version: "0.3.1"',
+        'version: "0.4.0"',
         "interface:",
         'display_name: "Briefprint"',
         'short_description: "Rerender cached document briefings without re-summarizing unchanged supplied documents."',

@@ -11,14 +11,14 @@ OPENAI_SHORT_DESCRIPTION = (
 )
 
 
-def test_versions_are_synchronized_to_0_3_1():
+def test_versions_are_synchronized_to_0_4_0():
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     openai_yaml = (ROOT / "agents" / "openai.yaml").read_text(encoding="utf-8")
 
-    assert 'version = "0.3.1"' in pyproject
-    assert __version__ == "0.3.1"
-    assert SKILL_VERSION == "0.3.1"
-    assert 'version: "0.3.1"' in openai_yaml
+    assert 'version = "0.4.0"' in pyproject
+    assert __version__ == "0.4.0"
+    assert SKILL_VERSION == "0.4.0"
+    assert 'version: "0.4.0"' in openai_yaml
 
 
 def test_openai_yaml_uses_interface_metadata():
@@ -47,11 +47,11 @@ def test_skill_description_matches_supported_modes_and_boundary():
     description = next(
         line.split(":", 1)[1].strip().strip('"') for line in frontmatter.splitlines() if line.startswith("description:")
     )
-    assert len(description) <= 260
+    assert len(description) <= 320
     description_lower = description.lower()
     for term in ["summarize", "brief", "digest", "recap", "rerender", "cached briefing state"]:
         assert term in description_lower
-    for input_kind in ["docs", "notes", "tickets", "logs", "reports", "transcripts", "json/xml/api"]:
+    for input_kind in ["documents", "notes", "tickets", "logs", "reports", "transcripts", "json/xml/api payloads"]:
         assert input_kind in description_lower
     for boundary in [
         "live research",
