@@ -56,11 +56,13 @@ def test_skill_description_matches_supported_modes_and_boundary():
     for boundary in [
         "live research",
         "source-code review/debugging",
+        "general writing",
         "translation-only",
         "simple q&a",
-        "cacheable document input",
     ]:
         assert boundary in description_lower
+    assert "cacheable" in description_lower
+    assert "input" in description_lower
     assert "compare" not in frontmatter
     assert "source-code review/debugging" in frontmatter
     assert "code-review notes or PR discussion documents" in skill
