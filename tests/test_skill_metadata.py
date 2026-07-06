@@ -11,14 +11,14 @@ OPENAI_SHORT_DESCRIPTION = (
 )
 
 
-def test_versions_are_synchronized_to_0_4_0():
+def test_versions_are_synchronized_to_0_5_0():
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     openai_yaml = (ROOT / "agents" / "openai.yaml").read_text(encoding="utf-8")
 
-    assert 'version = "0.4.0"' in pyproject
-    assert __version__ == "0.4.0"
-    assert SKILL_VERSION == "0.4.0"
-    assert 'version: "0.4.0"' in openai_yaml
+    assert 'version = "0.5.0"' in pyproject
+    assert __version__ == "0.5.0"
+    assert SKILL_VERSION == "0.5.0"
+    assert 'version: "0.5.0"' in openai_yaml
 
 
 def test_openai_yaml_uses_interface_metadata():

@@ -143,11 +143,10 @@ python -m document_briefing_cache.cli benchmark \
 | 총 요약 호출 | 4 |
 | 문서 캐시 히트 | 16 |
 | 문서 캐시 미스 | 4 |
-| 품질 경고 행 | 0 |
 
 시나리오별 핵심 결과:
 
-| 시나리오 | 요약 호출 | 캐시 인식 입력 토큰 |
+| 시나리오 | 요약 호출 | 캐시 미스 입력 토큰 |
 |---|---:|---:|
 | 문서 3개 최초 브리핑 | 3 | 226 |
 | 같은 브리핑 반복 | 0 | 0 |
@@ -156,6 +155,8 @@ python -m document_briefing_cache.cli benchmark \
 | action_items로 재렌더링 | 0 | 0 |
 | 업데이트 1개 추가 | 1 | 83 |
 | 합쳐진 문서 debug 렌더링 | 0 | 0 |
+
+요약 호출과 캐시 미스 입력 토큰이 `0`인 행은 의도된 결과입니다. 반복 브리핑과 재렌더링이 바뀌지 않은 문서를 다시 읽지 않고 캐시된 구조화 상태를 재사용했다는 증거입니다.
 
 숫자는 솔직하게 봐야 합니다. 이 결과는 로컬 harness의 토큰 추정치입니다. 실제 청구 비용을 보려면 provider usage, Codex CLI/OTel, 또는 사용하는 호스트의 telemetry와 함께 비교해야 합니다. 벤치마크의 품질 체크는 actions, decisions, risks, metrics에 대한 가벼운 smoke check이며 의미론적 정확도 점수는 아닙니다.
 

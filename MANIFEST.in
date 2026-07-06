@@ -5,4 +5,5 @@ recursive-include evals *.json
 recursive-include references *.md
 recursive-include agents *.yaml
 recursive-include docs *.md
+prune docs/superpowers/plans
 recursive-include skills *.md *.yaml
