@@ -20,7 +20,7 @@ ruff check .
 
 ## Observed Results
 
-- `python -m pytest -q -p no:cacheprovider`: `168 passed, 2 skipped`
+- `python -m pytest -q -p no:cacheprovider`: `169 passed, 2 skipped`
 - `python scripts\validate_skill.py --run-evals`: `OK: briefprint skill repository validated (24 test files, 9 eval cases, 10 trigger cases, 5 model benchmark cases)`
 - `ruff check .`: `All checks passed!`
 

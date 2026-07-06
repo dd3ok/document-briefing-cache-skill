@@ -97,3 +97,70 @@ def test_trigger_eval_validator_rejects_non_explicit_positive_invocation(tmp_pat
     _, errors = validate_trigger_eval_cases(path)
 
     assert any("positive trigger should explicitly invoke briefprint" in error for error in errors)
+
+
+def test_trigger_eval_validator_rejects_path_or_url_mentions_as_explicit_invocation(tmp_path):
+    path = tmp_path / "trigger_eval_cases.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0.0",
+                "cases": [
+                    {
+                        "id": "bad-positive-path-mention",
+                        "prompt": "Summarize skills/briefprint/SKILL.md into a cached digest.",
+                        "input": {"kind": "inline_document"},
+                        "expect": {"invoke": True, "intent": "digest"},
+                    },
+                    {
+                        "id": "bad-positive-url-mention",
+                        "prompt": "Summarize https://github.com/dd3ok/briefprint into a cached digest.",
+                        "input": {"kind": "inline_document"},
+                        "expect": {"invoke": True, "intent": "digest"},
+                    },
+                    {
+                        "id": "neg-ordinary-one-off-summary",
+                        "prompt": "Summarize these meeting notes and extract action items.",
+                        "input": {"kind": "inline_document"},
+                        "expect": {"invoke": False, "boundary": "ordinary_one_off_summary"},
+                    },
+                    {
+                        "id": "neg-live-research",
+                        "prompt": "Find and analyze today's latest financial news.",
+                        "input": {"kind": "no_document"},
+                        "expect": {"invoke": False, "boundary": "live_research"},
+                    },
+                    {
+                        "id": "neg-source-code-review",
+                        "prompt": "Review this diff and find bugs in the implementation.",
+                        "input": {"kind": "source_code"},
+                        "expect": {"invoke": False, "boundary": "source_code_review"},
+                    },
+                    {
+                        "id": "neg-debugging",
+                        "prompt": "Debug this stack trace and tell me how to fix it.",
+                        "input": {"kind": "stack_trace"},
+                        "expect": {"invoke": False, "boundary": "debugging"},
+                    },
+                    {
+                        "id": "neg-translation-only",
+                        "prompt": "Translate this paragraph to English only.",
+                        "input": {"kind": "plain_text"},
+                        "expect": {"invoke": False, "boundary": "translation_only"},
+                    },
+                    {
+                        "id": "neg-simple-qa",
+                        "prompt": "Where is the cache usually stored?",
+                        "input": {"kind": "no_document"},
+                        "expect": {"invoke": False, "boundary": "simple_qa"},
+                    },
+                ],
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    _, errors = validate_trigger_eval_cases(path)
+
+    assert sum("positive trigger should explicitly invoke briefprint" in error for error in errors) == 2

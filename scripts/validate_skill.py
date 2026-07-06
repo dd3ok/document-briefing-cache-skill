@@ -520,7 +520,7 @@ def infer_skill_trigger_for_eval(case: dict) -> bool:
 
 
 def _has_explicit_briefprint_invocation(prompt: str) -> bool:
-    return re.search(r"(?<![\w-])(?:\$briefprint|/briefprint|briefprint)(?![\w-])", prompt.lower()) is not None
+    return re.search(r"(?<![\w/-])(?:\$briefprint|/briefprint|briefprint)(?![\w/-])", prompt.lower()) is not None
 
 
 if __name__ == "__main__":
