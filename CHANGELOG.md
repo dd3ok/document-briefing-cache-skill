@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 - Unreleased
+
+Targeted as `0.5.0` because the explicit-use policy is a post-`v0.4.0` routing behavior change.
 
 ### Changed
 
@@ -8,6 +10,11 @@
 - Replaced broad natural-language trigger examples with `$briefprint` invocation examples.
 - Added `disable-model-invocation: true` to the installable skill metadata for hosts that support manual-only skill invocation.
 - Documented the boundary between the static agent skill bundle and Briefprint runtime caches under `--cache-dir`.
+- Aligned README cache-dir examples, including benchmark receipts, under `.cache/briefprint`.
+
+### Validation
+
+- Recorded latest fetched `origin/main` GitHub Actions CI success in `VALIDATION.md`.
 
 ## 0.4.0 - 2026-07-05
 
