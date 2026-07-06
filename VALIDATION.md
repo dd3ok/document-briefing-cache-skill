@@ -1,6 +1,6 @@
 # Validation
 
-Last verified: 2026-07-05
+Last verified: 2026-07-06
 
 ## Environment
 
@@ -23,6 +23,8 @@ ruff check .
 - `python -m pytest -q -p no:cacheprovider`: `169 passed, 2 skipped`
 - `python scripts\validate_skill.py --run-evals`: `OK: briefprint skill repository validated (24 test files, 9 eval cases, 10 trigger cases, 5 model benchmark cases)`
 - `ruff check .`: `All checks passed!`
+
+Latest fetched `origin/main` CI status was checked separately: GitHub Actions `CI` run `28759630346` completed successfully for `677057a` on 2026-07-06T00:07:29Z. This confirms the base branch status; the commands above remain the source-tree validation for the current checkout.
 
 `tests/test_distribution_smoke.py` remains opt-in and skips unless `DBC_RUN_INSTALLED_SMOKE=1` is set. CI or release validation should still build wheel and sdist artifacts, install each into a fresh virtual environment, and run the installed smoke test outside the repository root.
 

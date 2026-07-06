@@ -74,7 +74,7 @@ pip install -e ".[pdf]"  # PDF 텍스트 추출 helper
 python -m document_briefing_cache.cli run \
   --input examples/mixed_documents.json \
   --mode brief \
-  --cache-dir .cache \
+  --cache-dir .cache/briefprint \
   --summary-mode rules \
   --show-stats \
   --explain-cache
@@ -92,7 +92,7 @@ summarizer_calls: 0
 python -m document_briefing_cache.cli run \
   --input examples/mixed_documents.json \
   --mode action_items \
-  --cache-dir .cache \
+  --cache-dir .cache/briefprint \
   --summary-mode rules \
   --show-stats
 ```
@@ -122,7 +122,7 @@ Claude.ai description variant: Explicit-use cached briefings for supplied docume
 python -m document_briefing_cache.cli benchmark \
   --input examples/mixed_documents.json \
   --incremental-input examples/incident_update.json \
-  --cache-dir .cache/readme-benchmark \
+  --cache-dir .cache/briefprint/readme-benchmark \
   --fresh \
   --mode brief \
   --mode digest \
@@ -233,7 +233,7 @@ python -m document_briefing_cache.cli run \
 
 `--redact-pii`는 `basic-contact-v1` 프로필을 적용합니다. 이메일, 한국 휴대폰 번호, 미국 전화번호를 다루지만 완전한 PII 탐지기는 아닙니다.
 
-`--redact-secrets`는 `basic-secrets-v1` 프로필을 적용합니다. bearer tokens, API keys, webhook URLs, card-like values, secret-shaped JSON keys를 best-effort로 가립니다. Secret redaction is not included in --sensitive; 민감 문서에 비밀값이 들어갈 수 있으면 별도로 켜야 합니다.
+`--redact-secrets`는 `basic-secrets-v1` 프로필을 적용합니다. bearer tokens, API keys, webhook URLs, card-like values, secret-shaped JSON keys를 best-effort로 가립니다. 비밀값 마스킹은 `--sensitive`에 포함되지 않으므로, 민감 문서에 비밀값이 들어갈 수 있으면 별도로 켜야 합니다.
 
 `--redact-secrets`는 `session_id`처럼 운영 상관관계 분석에 쓰이는 값도 secret-shaped key 아래에 있으면 가릴 수 있습니다. 정확한 추적보다 비밀값 보호가 더 중요한 경우에 켜세요.
 
@@ -262,7 +262,7 @@ OPENAI_API_KEY="..." python -m document_briefing_cache.cli run \
   --llm-max-retries 2 \
   --llm-max-input-tokens 12000 \
   --llm-max-output-tokens 4000 \
-  --cache-dir .cache \
+  --cache-dir .cache/briefprint \
   --show-stats
 ```
 

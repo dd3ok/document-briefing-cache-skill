@@ -74,7 +74,7 @@ Run the sample:
 python -m document_briefing_cache.cli run \
   --input examples/mixed_documents.json \
   --mode brief \
-  --cache-dir .cache \
+  --cache-dir .cache/briefprint \
   --summary-mode rules \
   --show-stats \
   --explain-cache
@@ -92,7 +92,7 @@ Render another format from the same cached document state:
 python -m document_briefing_cache.cli run \
   --input examples/mixed_documents.json \
   --mode action_items \
-  --cache-dir .cache \
+  --cache-dir .cache/briefprint \
   --summary-mode rules \
   --show-stats
 ```
@@ -122,7 +122,7 @@ This local benchmark was run on the current examples with the deterministic `rul
 python -m document_briefing_cache.cli benchmark \
   --input examples/mixed_documents.json \
   --incremental-input examples/incident_update.json \
-  --cache-dir .cache/readme-benchmark \
+  --cache-dir .cache/briefprint/readme-benchmark \
   --fresh \
   --mode brief \
   --mode digest \
@@ -262,7 +262,7 @@ OPENAI_API_KEY="..." python -m document_briefing_cache.cli run \
   --llm-max-retries 2 \
   --llm-max-input-tokens 12000 \
   --llm-max-output-tokens 4000 \
-  --cache-dir .cache \
+  --cache-dir .cache/briefprint \
   --show-stats
 ```
 
