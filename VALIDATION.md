@@ -1,6 +1,6 @@
 # Validation
 
-Last verified: 2026-07-04
+Last verified: 2026-07-05
 
 ## Environment
 
@@ -20,8 +20,8 @@ ruff check .
 
 ## Observed Results
 
-- `python -m pytest -q -p no:cacheprovider`: `164 passed, 2 skipped`
-- `python scripts\validate_skill.py --run-evals`: `OK: briefprint skill repository validated (24 test files, 9 eval cases, 9 trigger cases, 4 model benchmark cases)`
+- `python -m pytest -q -p no:cacheprovider`: `169 passed, 2 skipped`
+- `python scripts\validate_skill.py --run-evals`: `OK: briefprint skill repository validated (24 test files, 9 eval cases, 10 trigger cases, 5 model benchmark cases)`
 - `ruff check .`: `All checks passed!`
 
 `tests/test_distribution_smoke.py` remains opt-in and skips unless `DBC_RUN_INSTALLED_SMOKE=1` is set. CI or release validation should still build wheel and sdist artifacts, install each into a fresh virtual environment, and run the installed smoke test outside the repository root.

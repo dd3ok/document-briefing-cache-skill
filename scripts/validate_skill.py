@@ -200,8 +200,24 @@ def validate_trigger_eval_cases(path: Path) -> tuple[dict | None, list[str]]:
     has_positive = False
     has_negative = False
     allowed_input_kinds = {"inline_document", "cached_state", "no_document", "source_code", "stack_trace", "plain_text"}
-    allowed_negative_boundaries = {"live_research", "source_code_review", "debugging", "general_writing", "translation_only", "simple_qa", "no_document_input"}
-    required_negative_boundaries = {"live_research", "source_code_review", "debugging", "translation_only", "simple_qa"}
+    allowed_negative_boundaries = {
+        "live_research",
+        "source_code_review",
+        "debugging",
+        "general_writing",
+        "translation_only",
+        "simple_qa",
+        "no_document_input",
+        "ordinary_one_off_summary",
+    }
+    required_negative_boundaries = {
+        "live_research",
+        "source_code_review",
+        "debugging",
+        "translation_only",
+        "simple_qa",
+        "ordinary_one_off_summary",
+    }
     seen_negative_boundaries: set[str] = set()
     for idx, case in enumerate(cases):
         prefix = f"Trigger eval case {idx}"
@@ -229,6 +245,9 @@ def validate_trigger_eval_cases(path: Path) -> tuple[dict | None, list[str]]:
             has_positive = True
             if input_payload.get("kind") not in {"inline_document", "cached_state"}:
                 errors.append(f"{prefix} positive trigger should use document-like input or cached state.")
+            lowered_prompt = str(case.get("prompt", "")).lower()
+            if not _has_explicit_briefprint_invocation(lowered_prompt):
+                errors.append(f"{prefix} positive trigger should explicitly invoke briefprint.")
             if not expect.get("intent"):
                 errors.append(f"{prefix} positive trigger missing expect.intent.")
         if expect.get("invoke") is False:
@@ -259,12 +278,22 @@ def validate_openai_yaml(path: Path) -> list[str]:
         'short_description: "Rerender cached document briefings without re-summarizing unchanged supplied documents."',
         "$briefprint",
         "policy:",
-        "allow_implicit_invocation: true",
+        "allow_implicit_invocation: false",
+        "invocation_examples:",
         'name: "briefprint"',
     ]
     for fragment in required_fragments:
         if fragment not in text:
             errors.append(f"agents/openai.yaml missing required metadata fragment: {fragment}")
+    forbidden_fragments = [
+        "triggers:",
+        "summarize these supplied documents",
+        "summarize this JSON or XML payload",
+        "create an executive digest for this document set",
+    ]
+    for fragment in forbidden_fragments:
+        if fragment in text:
+            errors.append(f"agents/openai.yaml should not include broad implicit trigger fragment: {fragment}")
     return errors
 
 
@@ -295,6 +324,8 @@ def validate_installable_skill_bundle(bundle: Path) -> list[str]:
         errors.append("Installable skill SKILL.md metadata must include description.")
     elif len(description_match.group(1).strip().strip('"')) > 1024:
         errors.append("Installable skill description must be at most 1024 characters.")
+    if not re.search(r"^disable-model-invocation:\s*true\s*$", frontmatter, flags=re.MULTILINE):
+        errors.append("Installable skill SKILL.md must disable model invocation for manual-use hosts.")
 
     root_only_fragments = ["src/", "tests/", "evals/", "examples/", "scripts/", "VALIDATION.md", "pyproject.toml", "pip install"]
     for fragment in root_only_fragments:
@@ -344,6 +375,10 @@ def validate_model_invocation_benchmark_cases_from_payload(payload: dict, path: 
             continue
         has_positive = has_positive or case["expected_invocation"]
         has_negative = has_negative or not case["expected_invocation"]
+        if case["expected_invocation"]:
+            lowered_prompt = str(case.get("prompt", "")).lower()
+            if not _has_explicit_briefprint_invocation(lowered_prompt):
+                errors.append(f"{prefix} positive expected invocation should explicitly invoke briefprint.")
         if "observed_invocation" not in case:
             errors.append(f"{prefix} missing observed_invocation.")
         elif case.get("observed_invocation") is not None and (
@@ -477,28 +512,15 @@ def infer_skill_trigger_for_eval(case: dict) -> bool:
         "무엇",
         "what is",
     )
-    positive_terms = (
-        "summarize",
-        "brief",
-        "회의록",
-        "문서",
-        "json",
-        "xml",
-        "payload",
-        "리포트",
-        "로그",
-        "티켓",
-        "transcript",
-        "재렌더",
-        "rerender",
-        "digest",
-        "액션",
-        "리뷰 코멘트",
-        "pr 리뷰",
-    )
     if any(term in lowered for term in negative_terms):
         return False
-    return kind in {"inline_document", "cached_state"} and any(term in lowered for term in positive_terms)
+    if kind not in {"inline_document", "cached_state"}:
+        return False
+    return _has_explicit_briefprint_invocation(lowered)
+
+
+def _has_explicit_briefprint_invocation(prompt: str) -> bool:
+    return re.search(r"(?<![\w/-])(?:\$briefprint|/briefprint|briefprint)(?![\w/-])", prompt.lower()) is not None
 
 
 if __name__ == "__main__":

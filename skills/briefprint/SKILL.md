@@ -1,11 +1,12 @@
 ---
 name: briefprint
-description: Use to summarize, brief, digest, recap, or rerender supplied documents, notes, tickets, logs, reports, transcripts, JSON/XML/API payloads, or cached briefing state. Do not use for live research, source-code review/debugging, general writing, translation-only edits, simple Q&A, or non-cacheable input.
+description: Use only when explicitly invoked as briefprint, $briefprint, or /briefprint for cached document briefings: summarize, brief, digest, recap, or rerender documents, notes, tickets, logs, reports, transcripts, JSON/XML/API payloads, or cached briefing state. Do not use for ordinary one-off summaries, live research, source-code review/debugging, general writing, translation-only, simple Q&A, or non-cacheable input.
+disable-model-invocation: true
 ---
 
 # Briefprint
 
-Use this skill when document meaning should be summarized once, stored as structured state, and reused for repeated briefings or template-only rerendering.
+Use this skill when the user explicitly invokes `briefprint`, `$briefprint`, or `/briefprint` for document meaning that should be summarized once, stored as structured state, and reused for repeated briefings or template-only rerendering.
 
 Tradeoff: this is useful for repeated document-grounded work. It is not a general writing, research, or source-code review skill.
 

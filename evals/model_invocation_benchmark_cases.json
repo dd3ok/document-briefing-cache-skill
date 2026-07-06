@@ -5,27 +5,37 @@
   "cases": [
     {
       "id": "positive-meeting-rerender",
-      "prompt": "이 회의록을 요약하고 같은 내용을 action_items 형식으로 다시 렌더링해줘.",
+      "prompt": "$briefprint summarize these meeting notes into a cached briefing, then rerender the same content as action_items.",
       "expected_invocation": true,
       "observed_invocation": null,
       "host": null,
       "model": null,
       "date": null,
-      "notes": "Expected to invoke because the user supplies document-like content and asks for reusable briefing/rerendering."
+      "notes": "Expected to invoke because the user explicitly invokes $briefprint and asks for reusable briefing/rerendering."
     },
     {
       "id": "positive-json-digest",
-      "prompt": "이 JSON payload를 임원용 digest로 만들고, 다음 요청에서 재사용할 수 있게 캐시해줘.",
+      "prompt": "$briefprint summarize this JSON payload into a cached digest for reuse in later requests.",
       "expected_invocation": true,
       "observed_invocation": null,
       "host": null,
       "model": null,
       "date": null,
-      "notes": "Expected to invoke because the user asks for cached structured briefing from supplied JSON."
+      "notes": "Expected to invoke because the user explicitly invokes $briefprint for cached structured briefing from supplied JSON."
+    },
+    {
+      "id": "negative-ordinary-summary",
+      "prompt": "Summarize these meeting notes and extract action items.",
+      "expected_invocation": false,
+      "observed_invocation": null,
+      "host": null,
+      "model": null,
+      "date": null,
+      "notes": "Expected not to invoke because this is an ordinary one-off summary without explicit briefprint invocation."
     },
     {
       "id": "negative-live-news",
-      "prompt": "오늘 최신 금융 뉴스를 찾아서 분석해줘.",
+      "prompt": "Find and analyze today's latest financial news.",
       "expected_invocation": false,
       "observed_invocation": null,
       "host": null,
@@ -35,7 +45,7 @@
     },
     {
       "id": "negative-source-debugging",
-      "prompt": "이 Python stack trace를 보고 버그 원인을 찾아 고쳐줘.",
+      "prompt": "Read this Python stack trace and find the root cause.",
       "expected_invocation": false,
       "observed_invocation": null,
       "host": null,

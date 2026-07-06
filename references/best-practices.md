@@ -33,10 +33,12 @@ Provider prompt caching can reduce repeated prefix cost, but it is not the same 
 A good skill should be easy to inspect:
 
 - short `SKILL.md`,
-- clear trigger phrases,
+- clear invocation examples and boundaries,
 - minimal scripts,
 - concrete schemas,
 - tests that prove behavior.
+
+The skill bundle is static install-time guidance. Briefprint's runtime cache lives under `--cache-dir`; it is created by the CLI/runtime, not by the installed skill bundle. Installing, updating, or removing the agent skill does not migrate, prune, or delete runtime caches. No portable agent-skill host contract currently provides automatic eviction for generated document state. Do not write document caches into the installed skill directory.
 
 ## 8. Validate with real samples
 
@@ -85,4 +87,4 @@ Document titles, sources, summaries, actions, and risk text may contain raw HTML
 
 ## 11. Prepare short deployment descriptions
 
-Codex/OpenAI skill metadata can use a detailed `SKILL.md` description for precise triggering. Claude.ai upload flows may require a shorter description, so keep a 200-character-safe variant ready for packaging.
+Codex/OpenAI skill metadata can use a detailed `SKILL.md` description for discoverability and manual invocation guidance. Claude.ai upload flows may require a shorter description, so keep a 200-character-safe variant ready for packaging.

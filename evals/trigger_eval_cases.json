@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0.0",
-  "description": "Skill trigger and boundary fixtures only; no pipeline execution.",
+  "description": "Skill trigger and boundary fixtures only; no pipeline execution. Briefprint is explicit-use: positive cases require explicit briefprint invocation.",
   "cases": [
     {
-      "id": "pos-meeting-brief-inline",
-      "prompt": "Summarize these meeting notes and extract action items.",
+      "id": "pos-explicit-meeting-brief-inline",
+      "prompt": "$briefprint summarize these meeting notes into a cached briefing and extract action items.",
       "input": {
         "kind": "inline_document",
         "doc_type": "meeting_notes",
@@ -17,8 +17,8 @@
       }
     },
     {
-      "id": "pos-json-digest",
-      "prompt": "이 JSON payload를 임원용 digest로 바꿔줘.",
+      "id": "pos-explicit-json-digest",
+      "prompt": "$briefprint summarize this JSON payload into a reusable digest.",
       "input": {
         "kind": "inline_document",
         "doc_type": "api_payload",
@@ -31,8 +31,8 @@
       }
     },
     {
-      "id": "pos-template-rerender",
-      "prompt": "같은 문서를 action_items 형식으로 재렌더링해줘.",
+      "id": "pos-cached-state-rerender",
+      "prompt": "$briefprint rerender this cached briefing as action_items.",
       "input": {
         "kind": "cached_state"
       },
@@ -42,8 +42,8 @@
       }
     },
     {
-      "id": "pos-review-comments-document",
-      "prompt": "이 PR 리뷰 코멘트 묶음을 요약하고 남은 액션만 정리해줘.",
+      "id": "pos-explicit-review-comments-document",
+      "prompt": "Use $briefprint on these exported PR review comments and summarize actions, risks, and decisions.",
       "input": {
         "kind": "inline_document",
         "doc_type": "review_comments",
@@ -56,8 +56,22 @@
       }
     },
     {
+      "id": "neg-ordinary-one-off-summary",
+      "prompt": "Summarize these meeting notes and extract action items.",
+      "input": {
+        "kind": "inline_document",
+        "doc_type": "meeting_notes",
+        "content_format": "markdown",
+        "sample": "Decision: ship. Action: Backend should patch PAY-482 by 2026-05-10."
+      },
+      "expect": {
+        "invoke": false,
+        "boundary": "ordinary_one_off_summary"
+      }
+    },
+    {
       "id": "neg-live-research",
-      "prompt": "오늘 최신 금융 뉴스를 찾아서 분석해줘.",
+      "prompt": "Find and analyze today's latest financial news.",
       "input": {
         "kind": "no_document"
       },
@@ -79,7 +93,7 @@
     },
     {
       "id": "neg-debugging",
-      "prompt": "이 stack trace 원인을 디버깅하고 수정 방법을 알려줘.",
+      "prompt": "Debug this stack trace and tell me how to fix it.",
       "input": {
         "kind": "stack_trace"
       },
@@ -90,7 +104,7 @@
     },
     {
       "id": "neg-translation-only",
-      "prompt": "이 문장을 영어로 번역만 해줘.",
+      "prompt": "Translate this paragraph to English only.",
       "input": {
         "kind": "plain_text"
       },
@@ -101,7 +115,7 @@
     },
     {
       "id": "neg-simple-qa",
-      "prompt": "캐시는 보통 어디에 저장돼?",
+      "prompt": "Where is the cache usually stored?",
       "input": {
         "kind": "no_document"
       },

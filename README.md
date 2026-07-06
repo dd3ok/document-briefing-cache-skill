@@ -110,7 +110,9 @@ skills/briefprint/
 
 Do not install the repository root as an agent skill. Root-copy installers can include tests, docs, examples, evals, source code, and validation scripts. See [docs/agent-skill-installation.md](docs/agent-skill-installation.md).
 
-Claude.ai description variant: Cache structured briefings for supplied documents, notes, logs, tickets, reports, JSON/XML, or transcripts. Use for repeated summaries, rerendering, digests, actions, risks, or metrics.
+Briefprint is explicit-use by design. For Codex, use `$briefprint`; for Claude Code, use `/briefprint`; for other hosts, use the host's explicit skill invocation or the CLI when you want reusable cached document briefings. Ordinary one-off summaries should not trigger the skill automatically.
+
+Claude.ai description variant: Explicit-use cached briefings for supplied documents, notes, logs, tickets, reports, JSON/XML, or transcripts. Use for repeated summaries, rerendering, digests, actions, risks, or metrics.
 
 ## Benchmark Receipts
 
@@ -191,18 +193,31 @@ URL-bearing metadata inside JSON, XML, HTML, or `DocumentInput.source` is preser
 
 Recommended defaults:
 
-- keep `document_summaries` as a TTL cache for repeated documents,
-- keep `rendered_outputs` short-lived because template rendering is cheap,
+- keep repo-local cache under `.cache/briefprint` and keep it out of version control,
+- keep `document_summaries` as a short TTL cache for repeated documents,
+- keep `rendered_outputs` shorter-lived because template rendering is cheap,
+- run pruning during normal use with `--prune-on-start`,
 - use `ephemeral` for sensitive one-off work.
 
 ```bash
 python -m document_briefing_cache.cli run \
   --input examples/mixed_documents.json \
+  --cache-dir .cache/briefprint \
   --cache-policy ttl \
-  --document-ttl 30d \
+  --document-ttl 7d \
   --output-ttl 24h \
   --prune-on-start
 ```
+
+Briefprint does not run a background cleanup daemon. TTL values mark cache entries as expired; physical deletion happens when you run `cache prune`, enable `--prune-on-start` or `--prune-on-exit`, or use a delete-on-exit policy. This follows the common local-tooling pattern: generated caches are disposable, ignored by Git, and cleaned explicitly or opportunistically during tool runs. CI caches are the main exception; platforms such as GitHub Actions apply their own last-access and size eviction policies.
+
+Use longer retention only when the cache is intentionally persistent:
+
+- project-local default: `.cache/briefprint`, `--document-ttl 7d`, `--output-ttl 24h`, `--prune-on-start`,
+- sensitive one-off work: `--sensitive`,
+- long-lived shared cache: explicit `--cache-policy persistent` or a longer `--document-ttl`.
+
+Skill bundle and runtime cache are separate. The skill bundle is static install-time guidance; the runtime cache lives under `--cache-dir` and is owned by the Briefprint CLI/runtime. Installing, updating, or removing the agent skill does not migrate, prune, or delete runtime caches. No portable agent-skill host contract currently provides automatic eviction for generated document state, so do not write document caches into the installed skill directory.
 
 For sensitive documents:
 
@@ -227,9 +242,9 @@ For sensitive documents, the safe default is no persistent cache. `--sensitive` 
 Cache maintenance:
 
 ```bash
-python -m document_briefing_cache.cli cache stats --cache-dir .cache --json
-python -m document_briefing_cache.cli cache prune --cache-dir .cache --older-than 30d --dry-run --json
-python -m document_briefing_cache.cli cache clear --cache-dir .cache --layer rendered_outputs --yes
+python -m document_briefing_cache.cli cache stats --cache-dir .cache/briefprint --json
+python -m document_briefing_cache.cli cache prune --cache-dir .cache/briefprint --older-than 7d --dry-run --json
+python -m document_briefing_cache.cli cache clear --cache-dir .cache/briefprint --layer rendered_outputs --yes
 ```
 
 ## LLM Summarizer

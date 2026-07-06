@@ -32,6 +32,8 @@ This repository has two different install surfaces:
 
 Do not install the repository root as an agent skill. Root-copy installers can copy tests, docs, examples, eval fixtures, source code, and validation scripts into the host skill directory. Use the lightweight skill subdirectory instead.
 
+The skill bundle is static install-time guidance. Briefprint's runtime cache lives under `--cache-dir`; it is not part of the agent skill bundle. Installing, updating, or removing the agent skill does not migrate, prune, or delete runtime caches. No portable agent-skill host contract currently provides automatic eviction for generated document state. Do not write document caches into the installed skill directory.
+
 ## Bundle Contents
 
 The installable skill bundle is:
