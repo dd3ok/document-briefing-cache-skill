@@ -1,8 +1,6 @@
 # Changelog
 
-## 0.5.0 - Unreleased
-
-Targeted as `0.5.0` because the explicit-use policy is a post-`v0.4.0` routing behavior change.
+## 0.5.0 - 2026-07-06
 
 ### Changed
 
@@ -11,6 +9,7 @@ Targeted as `0.5.0` because the explicit-use policy is a post-`v0.4.0` routing b
 - Added `disable-model-invocation: true` to the installable skill metadata for hosts that support manual-only skill invocation.
 - Documented the boundary between the static agent skill bundle and Briefprint runtime caches under `--cache-dir`.
 - Aligned README cache-dir examples, including benchmark receipts, under `.cache/briefprint`.
+- Bumped runtime and skill metadata to `0.5.0`; cache keys include the skill version, so prior `0.4.x` document-summary and rendered-output cache entries cold-start after upgrade.
 
 ### Validation
 

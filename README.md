@@ -143,11 +143,10 @@ python -m document_briefing_cache.cli benchmark \
 | Total summarizer calls | 4 |
 | Document cache hits | 16 |
 | Document cache misses | 4 |
-| Quality warning rows | 0 |
 
 Scenario shape:
 
-| Scenario | Summarizer calls | Cache-aware input tokens |
+| Scenario | Summarizer calls | Cache-miss input tokens |
 |---|---:|---:|
 | Cold brief over 3 documents | 3 | 226 |
 | Same brief again | 0 | 0 |
@@ -156,6 +155,8 @@ Scenario shape:
 | Rerender action items | 0 | 0 |
 | Add one update | 1 | 83 |
 | Rerender debug over combined set | 0 | 0 |
+
+Rows with `0` summarizer calls and `0` cache-miss input tokens are intentional: they show that rerenders and repeated briefs reuse cached structured state instead of re-reading unchanged documents.
 
 Honest number warning: these are deterministic local estimates from the benchmark harness, not provider billing telemetry. Use OpenAI/provider usage or host telemetry when exact billing matters. The benchmark also includes lightweight quality smoke checks for obvious actions, decisions, risks, and metrics; it is not a semantic accuracy score.
 
