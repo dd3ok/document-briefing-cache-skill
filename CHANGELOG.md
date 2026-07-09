@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Expanded the basic PII redaction profile to `basic-contact-v2`, adding common dashed Korean resident/foreigner registration number patterns and dotted Korean mobile-number formats.
+- PII-redacted document-summary and rendered-output cache entries cold-start after this redaction policy id change.
+- Documented current limitations and alternative boundaries, including provider prompt caching, embedding caches, LlamaIndex ingestion, and custom Redis/SHA256 cache tradeoffs.
+
 ## 0.5.0 - 2026-07-06
 
 ### Changed

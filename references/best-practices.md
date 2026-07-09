@@ -71,7 +71,7 @@ python -m document_briefing_cache.cli run \
 
 `--sensitive` expands to `--cache-policy ephemeral --no-output-cache --redact-pii --delete-on-exit created`.
 
-Use `--redact-pii` when basic contact information should not reach LLM cache-miss calls or local cache files. Redaction is a profile, so include its policy id in document and output cache keys. The built-in `basic-contact-v1` redaction profile covers common email addresses, Korean mobile numbers, and US phone numbers. It is not a complete PII detector for names, addresses, national IDs, account numbers, cards, API keys, or access tokens.
+Use `--redact-pii` when basic contact information should not reach LLM cache-miss calls or local cache files. Redaction is a profile, so include its policy id in document and output cache keys. The built-in `basic-contact-v2` redaction profile covers common email addresses, Korean mobile numbers, common dashed Korean resident or foreigner registration number patterns, and US phone numbers. It is not a complete PII detector for names, addresses, account numbers, cards, API keys, access tokens, or general account IDs.
 
 Use `--redact-secrets` when bearer tokens, API keys, webhook URLs, card-like values, or string values under secret-shaped JSON keys may appear. It applies the built-in `basic-secrets-v1` profile. Secret redaction is best-effort and is not included in `--sensitive`; enable it explicitly when secrecy matters more than preserving exact operational identifiers.
 

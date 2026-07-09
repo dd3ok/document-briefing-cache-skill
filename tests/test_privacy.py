@@ -4,7 +4,7 @@ import pytest
 
 from document_briefing_cache.models import CacheConfig, DocumentInput
 from document_briefing_cache.pipeline import BriefingPipeline
-from document_briefing_cache.privacy import redact_document_input, redact_pii_text, redact_secret_text
+from document_briefing_cache.privacy import redaction_policy_id, redact_document_input, redact_pii_text, redact_secret_text
 from document_briefing_cache.summarizers import RuleBasedExtractiveSummarizer
 
 
@@ -191,6 +191,25 @@ def test_pii_redaction_preserves_non_pii_protected_values():
     assert "2026-05-12" in redacted
     assert "2.4%" in redacted
     assert "183 ms" in redacted
+
+
+def test_pii_redaction_covers_kr_registration_ids_and_dotted_mobile_without_names_or_accounts():
+    text = "홍길동 RRN 900101-1234567, ARN 900101-5123456, mobile 010.1234.5678, account 110-123-456789."
+
+    redacted, count = redact_pii_text(text)
+
+    assert count == 3
+    assert "900101-1234567" not in redacted
+    assert "900101-5123456" not in redacted
+    assert "010.1234.5678" not in redacted
+    assert "[REDACTED:kr-registration-id]" in redacted
+    assert "[REDACTED:phone]" in redacted
+    assert "홍길동" in redacted
+    assert "110-123-456789" in redacted
+
+
+def test_pii_redaction_policy_id_changes_when_profile_scope_changes():
+    assert redaction_policy_id(redact_pii=True) == "basic-contact-v2"
 
 
 def test_secret_redaction_covers_common_tokens_and_preserves_operational_values():

@@ -174,6 +174,27 @@ python -m document_briefing_cache.cli benchmark \
 - 섹션 순서나 ID가 계속 바뀌는 문서
 - 최신 뉴스, 가격, 정책, 법률처럼 외부 최신성이 중요한 요청
 
+## 한계와 대안
+
+Briefprint는 넓은 DLP 스캐너, URL crawler, RAG framework, provider 과금 profiler가 아닙니다.
+
+현재 한계:
+
+- PII redaction은 기본형입니다. `basic-contact-v2`는 이메일, `010-1234-5678`, `010 1234 5678`, `01012345678`, `010.1234.5678` 같은 한국 휴대폰 형식, 미국 전화번호, 하이픈이 있는 흔한 주민등록번호/외국인등록번호 모양을 다룹니다. 한국 이름, 카카오나 네이버 계정 ID, 주소, 계좌번호는 범위 밖입니다.
+- 기본 `rules` 요약기는 결정적 얕은 추출기입니다. 캐시 데모와 smoke check에는 유용하지만 의미론적 요약 품질을 보장하지 않습니다.
+- 캐시 파일은 plaintext JSON입니다. HMAC은 위변조를 탐지하지만 내용을 암호화하지 않습니다.
+- CLI 입력은 로컬 파일입니다. 원격 URL은 호출자가 먼저 가져와 로컬 파일이나 정규화된 payload로 넘겨야 합니다.
+- JSON 캐시는 write 때 atomic replacement를 쓰지만 프로세스 간 파일 lock은 없습니다. 여러 writer가 같은 cache dir을 공유해야 한다면 외부 lock을 추가하세요.
+- CLI 내장 LLM adapter는 OpenAI 전용입니다. Python 호출자는 Anthropic, Gemini, 내부 모델용 `BaseSummarizer` 구현체를 따로 주입할 수 있습니다.
+- 벤치마크 토큰 절약 수치는 로컬 harness 추정치이며 provider 과금 telemetry가 아닙니다.
+
+대안과 경계:
+
+- LangChain CacheBackedEmbeddings는 텍스트 해시로 embedding 계산 결과를 캐시합니다. embedding 재계산이 비싼 경우에는 유용하지만, 구조화 문서 요약 캐시는 아닙니다. Briefprint의 재렌더링 가능한 `DocumentSummaryState`도 제공하지 않습니다.
+- LlamaIndex `IngestionPipeline`과 docstore는 transformation cache와 document hash 추적을 갖춘 더 넓은 ingestion/RAG pipeline입니다. indexing과 retrieval이 필요하면 적합하지만, 반복 브리핑 렌더링만 필요하면 Briefprint가 더 작습니다.
+- OpenAI나 Anthropic provider prompt caching은 보완 관계입니다. provider prompt caching은 반복 prompt-prefix 처리 비용을 줄일 수 있고, Briefprint는 cache hit 문서의 summarizer 호출 자체를 피할 수 있습니다.
+- 직접 Redis와 SHA256으로 캐시를 만들 수도 있지만 schema versioning, redaction-policy keying, evidence validation, TTL, render key를 직접 설계해야 합니다.
+
 ## 입력 범위
 
 현재 CLI의 `--input`은 로컬 파일 경로를 받습니다. `http://` 또는 `https://` URL을 직접 가져오지는 않습니다.
@@ -232,7 +253,7 @@ python -m document_briefing_cache.cli run \
 
 민감 문서의 안전한 기본값은 영구 캐시를 남기지 않는 것입니다. `--sensitive`는 `--cache-policy ephemeral --no-output-cache --redact-pii --delete-on-exit created`의 편의 옵션입니다.
 
-`--redact-pii`는 `basic-contact-v1` 프로필을 적용합니다. 이메일, 한국 휴대폰 번호, 미국 전화번호를 다루지만 완전한 PII 탐지기는 아닙니다.
+`--redact-pii`는 `basic-contact-v2` 프로필을 적용합니다. 이메일, 한국 휴대폰 번호, 하이픈이 있는 흔한 주민등록번호/외국인등록번호 모양, 미국 전화번호를 다루지만 완전한 PII 탐지기는 아닙니다.
 
 `--redact-secrets`는 `basic-secrets-v1` 프로필을 적용합니다. bearer tokens, API keys, webhook URLs, card-like values, secret-shaped JSON keys를 best-effort로 가립니다. 비밀값 마스킹은 `--sensitive`에 포함되지 않으므로, 민감 문서에 비밀값이 들어갈 수 있으면 별도로 켜야 합니다.
 
