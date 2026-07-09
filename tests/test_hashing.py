@@ -38,9 +38,9 @@ def test_cache_keys_change_by_redaction_policy():
     fingerprint = document_content_fingerprint(docs[0])
 
     raw_summary_key = document_summary_cache_key(docs[0], fingerprint, "rules", "0.2", redaction_policy_id="none")
-    redacted_summary_key = document_summary_cache_key(docs[0], fingerprint, "rules", "0.2", redaction_policy_id="basic-contact-v1")
+    redacted_summary_key = document_summary_cache_key(docs[0], fingerprint, "rules", "0.2", redaction_policy_id="basic-contact-v2")
     raw_output_key = output_cache_key(docs, "brief", "general", "ko-KR", "0.2", "t1", "rules", redaction_policy_id="none")
-    redacted_output_key = output_cache_key(docs, "brief", "general", "ko-KR", "0.2", "t1", "rules", redaction_policy_id="basic-contact-v1")
+    redacted_output_key = output_cache_key(docs, "brief", "general", "ko-KR", "0.2", "t1", "rules", redaction_policy_id="basic-contact-v2")
 
     assert raw_summary_key != redacted_summary_key
     assert raw_output_key != redacted_output_key

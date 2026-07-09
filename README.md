@@ -174,6 +174,27 @@ Honest number warning: these are deterministic local estimates from the benchmar
 - Inputs with unstable section IDs or reordered sections, unless you pass structured records with stable IDs.
 - Requests that require fresh external facts, policy changes, current prices, or live news.
 
+## Limits And Alternatives
+
+Briefprint is intentionally not a broad DLP scanner, URL crawler, RAG framework, or provider billing profiler.
+
+Current limits:
+
+- PII redaction is basic. `basic-contact-v2` covers common email addresses, Korean mobile formats such as `010-1234-5678`, `010 1234 5678`, `01012345678`, and `010.1234.5678`, US phone numbers, and common dashed Korean resident or foreigner registration number patterns. Korean names, Kakao or Naver account IDs, addresses, and bank account numbers remain out of scope.
+- The default `rules` summarizer is deterministic shallow extraction. It is useful for cache demos and smoke checks, not semantic summary quality.
+- Cache files are plaintext JSON. HMAC detects tampering; it does not encrypt contents.
+- CLI inputs are local files. Remote URLs should be fetched by the caller and passed as local files or normalized payloads.
+- The JSON cache uses atomic replacement for writes but has no cross-process file lock. Avoid sharing one cache directory across concurrent writers unless you add external locking.
+- The built-in CLI LLM adapter is OpenAI-only. Python callers can provide another `BaseSummarizer` implementation for Anthropic, Gemini, or an internal model.
+- Benchmark token savings are local estimates from the harness, not provider billing telemetry.
+
+Alternative boundaries:
+
+- LangChain CacheBackedEmbeddings caches embedding calculations by text hash. It is useful when embedding recomputation is the expensive step, but it is not a structured document-summary cache and does not provide Briefprint's rerenderable `DocumentSummaryState`.
+- LlamaIndex `IngestionPipeline` with a docstore is a broader ingestion/RAG pipeline with transformation caches and document hash tracking. Use it when you need indexing and retrieval; Briefprint stays smaller for repeated briefing renders.
+- OpenAI or Anthropic provider prompt caching is complementary. Provider prompt caching can reduce repeated prompt-prefix processing cost; Briefprint can avoid cache-hit document summarizer calls entirely.
+- A custom Redis plus SHA256 cache can be flexible, but you need to design schema versioning, redaction-policy keying, evidence validation, TTLs, and render keys yourself.
+
 ## Input Scope
 
 The CLI `--input` option currently accepts local file path values. It does not fetch URLs such as `http://` or `https://`.
@@ -232,7 +253,7 @@ python -m document_briefing_cache.cli run \
 
 For sensitive documents, the safe default is no persistent cache. `--sensitive` is a convenience alias for `--cache-policy ephemeral --no-output-cache --redact-pii --delete-on-exit created`.
 
-`--redact-pii` applies the built-in `basic-contact-v1` profile before cache misses are summarized. It covers common email addresses, Korean mobile numbers, and US phone numbers. It is not a complete PII detector.
+`--redact-pii` applies the built-in `basic-contact-v2` profile before cache misses are summarized. It covers common email addresses, Korean mobile numbers, common dashed Korean resident or foreigner registration number patterns, and US phone numbers. It is not a complete PII detector.
 
 `--redact-secrets` applies the built-in `basic-secrets-v1` profile. It is best-effort and targets bearer tokens, API keys, webhook URLs, card-like values, and string values under secret-shaped JSON keys. Secret redaction is not included in --sensitive; enable it explicitly when secret-shaped values may appear.
 

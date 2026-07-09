@@ -69,9 +69,10 @@ def test_readme_documents_redaction_scope_and_security_limits():
     best_practices = (ROOT / "references" / "best-practices.md").read_text(encoding="utf-8")
     combined = "\n".join([readme, skill, best_practices])
 
-    assert "basic-contact-v1" in combined
+    assert "basic-contact-v2" in combined
     assert "email" in combined
     assert "Korean mobile" in combined
+    assert "Korean resident or foreigner registration number" in combined
     assert "US phone" in combined
     assert "not a complete PII detector" in combined
     assert "--cache-policy ephemeral" in combined
@@ -80,6 +81,30 @@ def test_readme_documents_redaction_scope_and_security_limits():
     assert "tmpfs" in combined
     assert "tamper detection only" in combined
     assert "not encryption" in combined
+
+
+def test_readmes_document_limits_and_alternative_boundaries():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    korean = (ROOT / "README.ko.md").read_text(encoding="utf-8")
+
+    assert "## Limits And Alternatives" in readme
+    assert "Kakao or Naver account IDs" in readme
+    assert "bank account numbers remain out of scope" in readme
+    assert "no cross-process file lock" in readme
+    assert "The built-in CLI LLM adapter is OpenAI-only" in readme
+    assert "CacheBackedEmbeddings caches embedding calculations by text hash" in readme
+    assert "not a structured document-summary cache" in readme
+    assert "provider prompt caching is complementary" in readme
+
+    assert "## 한계와 대안" in korean
+    assert "카카오나 네이버 계정 ID" in korean
+    assert "주민등록번호/외국인등록번호" in korean
+    assert "계좌번호는 범위 밖" in korean
+    assert "프로세스 간 파일 lock은 없습니다" in korean
+    assert "CLI 내장 LLM adapter는 OpenAI 전용" in korean
+    assert "CacheBackedEmbeddings는 텍스트 해시로 embedding 계산 결과를 캐시" in korean
+    assert "구조화 문서 요약 캐시는 아닙니다" in korean
+    assert "provider prompt caching은 보완 관계" in korean
 
 
 def test_readme_documents_secret_redaction_scope_and_sensitive_boundary():

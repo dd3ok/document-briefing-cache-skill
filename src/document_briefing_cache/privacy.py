@@ -7,13 +7,14 @@ from .models import DocumentInput, DocumentSummaryState
 
 
 NO_REDACTION_POLICY_ID = "none"
-REDACTION_POLICY_ID = "basic-contact-v1"
+REDACTION_POLICY_ID = "basic-contact-v2"
 SECRET_REDACTION_POLICY_ID = "basic-secrets-v1"
 
 
 PII_PATTERNS: tuple[tuple[str, re.Pattern[str], str], ...] = (
     ("email", re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"), "[REDACTED:email]"),
-    ("phone", re.compile(r"\b01[016789][-\s]?\d{3,4}[-\s]?\d{4}\b"), "[REDACTED:phone]"),
+    ("kr-registration-id", re.compile(r"(?<!\d)\d{6}-[1-8]\d{6}(?!\d)"), "[REDACTED:kr-registration-id]"),
+    ("phone", re.compile(r"\b01[016789][-.\s]?\d{3,4}[-.\s]?\d{4}\b"), "[REDACTED:phone]"),
     ("phone", re.compile(r"\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}\b"), "[REDACTED:phone]"),
 )
 SECRET_ASSIGNMENT_PATTERN = re.compile(
